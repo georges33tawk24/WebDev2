@@ -17,6 +17,7 @@
 /public/build
 /public/fonts-manifest.dev.json
 /public/hot
+/webdev2
 /public/storage
 /storage/*.key
 /storage/pail

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 420" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="lx-bg" x1="60" y1="20" x2="420" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFF6FF"/>
+      <stop offset="0.45" stop-color="#DBEAFE"/>
+      <stop offset="1" stop-color="#BFDBFE"/>
+    </linearGradient>
+    <linearGradient id="lx-shield" x1="176" y1="68" x2="312" y2="312" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3B82F6"/>
+      <stop offset="0.5" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="lx-shine" x1="200" y1="90" x2="280" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="lx-lock" x1="218" y1="158" x2="278" y2="258" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#E2E8F0"/>
+    </linearGradient>
+    <filter id="lx-blur-a" x="-40" y="-40" width="200" height="200" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="28"/>
+    </filter>
+    <filter id="lx-blur-b" x="-40" y="-40" width="240" height="240" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="36"/>
+    </filter>
+    <filter id="lx-float" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#1E3A8A" flood-opacity="0.14"/>
+    </filter>
+    <filter id="lx-ground" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1E40AF" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+  <rect width="480" height="420" rx="24" fill="url(#lx-bg)"/>
+  <ellipse cx="120" cy="96" rx="72" ry="72" fill="#93C5FD" opacity="0.35" filter="url(#lx-blur-a)"/>
+  <ellipse cx="380" cy="120" rx="88" ry="88" fill="#60A5FA" opacity="0.28" filter="url(#lx-blur-b)"/>
+  <ellipse cx="240" cy="348" rx="148" ry="18" fill="#1E40AF" opacity="0.12" filter="url(#lx-ground)"/>
+  <g filter="url(#lx-float)">
+    <circle cx="118" cy="178" r="42" fill="#FFFFFF" stroke="#BFDBFE" stroke-width="3"/>
+    <circle cx="118" cy="164" r="18" fill="#93C5FD"/>
+    <path d="M118 188c-14 0-24 8-26 20h52c-2-12-12-20-26-20z" fill="#60A5FA"/>
+  </g>
+  <g filter="url(#lx-float)">
+    <circle cx="362" cy="156" r="44" fill="#FFFFFF" stroke="#BFDBFE" stroke-width="3"/>
+    <path d="M362 124c-10 0-18 8-18 18 0 5 2 9 5 12 9 8 18 22 18 38h10c0-16 9-30 18-38 3-3 5-7 5-12 0-10-8-18-18-18z" fill="#DBEAFE"/>
+    <path d="M348 138h28M356 148h12M352 158h20M348 168h28" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#lx-float)">
+    <path d="M244 52 L344 52 L332 246 L244 292 L156 246 L144 52 Z" fill="url(#lx-shield)"/>
+    <path d="M244 72 L318 72 L310 232 L244 268 L178 232 L170 72 Z" fill="url(#lx-shine)" opacity="0.9"/>
+    <path d="M244 52 L344 52 L332 246 L244 292 L156 246 L144 52 Z" stroke="#1E40AF" stroke-width="2" stroke-opacity="0.25"/>
+    <rect x="216" y="168" width="56" height="68" rx="10" fill="url(#lx-lock)"/>
+    <path d="M224 168v-28c0-11 9-20 20-20s20 9 20 20v28" stroke="#CBD5E1" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="244" cy="204" r="12" fill="#1D4ED8" opacity="0.85"/>
+    <circle cx="244" cy="204" r="6" fill="#93C5FD"/>
+  </g>
+</svg>

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 420" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="rx-bg" x1="40" y1="0" x2="440" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F0F9FF"/>
+      <stop offset="0.5" stop-color="#DBEAFE"/>
+      <stop offset="1" stop-color="#E0E7FF"/>
+    </linearGradient>
+    <linearGradient id="rx-phone" x1="188" y1="72" x2="292" y2="338" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#1E40AF"/>
+    </linearGradient>
+    <linearGradient id="rx-screen" x1="206" y1="104" x2="274" y2="288" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F1F5F9"/>
+    </linearGradient>
+    <linearGradient id="rx-check" x1="332" y1="112" x2="396" y2="192" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4ADE80"/>
+      <stop offset="1" stop-color="#16A34A"/>
+    </linearGradient>
+    <filter id="rx-blur" x="-40" y="-40" width="200" height="200" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="32"/>
+    </filter>
+    <filter id="rx-phone-shadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="22" stdDeviation="28" flood-color="#1E3A8A" flood-opacity="0.22"/>
+    </filter>
+    <filter id="rx-float-shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#1E40AF" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="480" height="420" rx="24" fill="url(#rx-bg)"/>
+  <ellipse cx="96" cy="110" rx="70" ry="70" fill="#A5B4FC" opacity="0.35" filter="url(#rx-blur)"/>
+  <ellipse cx="400" cy="300" rx="90" ry="90" fill="#93C5FD" opacity="0.28" filter="url(#rx-blur)"/>
+  <ellipse cx="240" cy="364" rx="150" ry="20" fill="#312E81" opacity="0.08"/>
+  <g transform="rotate(-6 240 210)" filter="url(#rx-phone-shadow)">
+    <rect x="174" y="64" width="132" height="272" rx="28" fill="url(#rx-phone)"/>
+    <rect x="228" y="88" width="24" height="6" rx="3" fill="#1E3A8A" opacity="0.45"/>
+    <rect x="188" y="108" width="104" height="196" rx="14" fill="url(#rx-screen)" stroke="#E2E8F0" stroke-width="2"/>
+    <circle cx="240" cy="172" r="36" fill="#DBEAFE"/>
+    <circle cx="240" cy="164" r="14" fill="#60A5FA"/>
+    <path d="M240 184c-16 0-28 10-30 26h60c-2-16-14-26-30-26z" fill="#3B82F6"/>
+    <rect x="206" y="232" width="68" height="10" rx="5" fill="#E2E8F0"/>
+    <rect x="214" y="250" width="52" height="10" rx="5" fill="#E2E8F0"/>
+    <circle cx="240" cy="292" r="8" fill="#64748B" opacity="0.35"/>
+  </g>
+  <g filter="url(#rx-float-shadow)">
+    <circle cx="364" cy="152" r="44" fill="url(#rx-check)"/>
+    <path d="M342 156l14 14 32-36" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g opacity="0.55">
+    <circle cx="130" cy="300" r="6" fill="#3B82F6"/>
+    <circle cx="154" cy="276" r="4" fill="#6366F1"/>
+    <circle cx="340" cy="88" r="5" fill="#2563EB"/>
+    <circle cx="368" cy="72" r="3" fill="#60A5FA"/>
+  </g>
+</svg>

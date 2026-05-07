@@ -49,4 +49,19 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
     Route::get('/dashboard/citizen', [DashboardController::class, 'citizen'])
         ->middleware('role:citizen')
         ->name('dashboard.citizen');
+
+    // Admin Routes
+    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/offices', [\App\Http\Controllers\Admin\OfficeController::class, 'index'])->name('offices.index');
+        Route::get('/offices/create', [\App\Http\Controllers\Admin\OfficeController::class, 'create'])->name('offices.create');
+        Route::post('/offices', [\App\Http\Controllers\Admin\OfficeController::class, 'store'])->name('offices.store');
+        Route::get('/offices/{office}/edit', [\App\Http\Controllers\Admin\OfficeController::class, 'edit'])->name('offices.edit');
+        Route::put('/offices/{office}', [\App\Http\Controllers\Admin\OfficeController::class, 'update'])->name('offices.update');
+        Route::delete('/offices/{office}', [\App\Http\Controllers\Admin\OfficeController::class, 'destroy'])->name('offices.destroy');
+
+        Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
+        Route::get('/citizens', [\App\Http\Controllers\Admin\UserController::class, 'citizens'])->name('citizens.index');
+        Route::patch('/users/{user}/toggle', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])->name('users.toggle');
+        Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
+    });
 });

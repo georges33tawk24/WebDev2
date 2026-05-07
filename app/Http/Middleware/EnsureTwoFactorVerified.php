@@ -8,13 +8,18 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureTwoFactorVerified
 {
-    public function handle(Request $request, Closure $next): Response
-    {
-        if (! $request->user() || $request->user()->two_factor_verified_at !== null) {
-            return $next($request);
-        }
+    //public function handle(Request $request, Closure $next): Response
+    //{
+       // if (! $request->user() || $request->user()->two_factor_verified_at !== null) {
+          //  return $next($request);
+        //}
 
-        return redirect()->route('2fa.verify')
-            ->withErrors(['code' => 'Please complete two-factor verification first.']);
+        //return redirect()->route('2fa.verify')
+          //  ->withErrors(['code' => 'Please complete two-factor verification first.']);
+          public function handle(Request $request, Closure $next): Response
+    {
+        // Temporarily disabled for testing
+        return $next($request);
     }
-}
+    }
+

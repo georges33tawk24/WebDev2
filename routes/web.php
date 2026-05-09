@@ -62,6 +62,17 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
         Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
         Route::get('/citizens', [\App\Http\Controllers\Admin\UserController::class, 'citizens'])->name('citizens.index');
         Route::patch('/users/{user}/toggle', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])->name('users.toggle');
+        Route::resource('categories', \App\Http\Controllers\Admin\CategoryController::class);
+        Route::resource('services', \App\Http\Controllers\Admin\ServiceController::class);
+
         Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
     });
+        // Staff Routes
+ Route::middleware('role:office_staff')->prefix('staff')->name('staff.')->group(function () {
+    Route::get('/requests', [\App\Http\Controllers\Staff\RequestController::class, 'index'])->name('requests.index');
+    Route::get('/requests/{serviceRequest}', [\App\Http\Controllers\Staff\RequestController::class, 'show'])->name('requests.show');
+    Route::patch('/requests/{serviceRequest}/status', [\App\Http\Controllers\Staff\RequestController::class, 'updateStatus'])->name('requests.updateStatus');
+    Route::post('/requests/{serviceRequest}/document', [\App\Http\Controllers\Staff\RequestController::class, 'uploadDocument'])->name('requests.uploadDocument');
 });
+});
+    

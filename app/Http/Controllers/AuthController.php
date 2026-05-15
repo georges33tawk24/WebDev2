@@ -8,11 +8,12 @@ use App\Models\SocialAccount;
 use App\Models\TwoFactorCode;
 use App\Models\User;
 use App\Services\IdDocumentParsingService;
-use App\Services\SmsTwoFactorService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -25,6 +26,8 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
+    private const TWO_FACTOR_SEND_COOLDOWN_SECONDS = 30;
+
     public function showLogin(): View
     {
         return view('auth.login');
@@ -92,52 +95,16 @@ class AuthController extends Controller
         }
 
         RateLimiter::clear($throttleKey);
-        $request->session()->regenerate();
-        $request->session()->put('two_factor.awaiting_method_choice', true);
-        $request->session()->forget('two_factor_channel');
-
-        return redirect()->route('2fa.verify');
-    }
-
-    public function chooseTwoFactorMethod(Request $request): RedirectResponse
-    {
-        if (! Auth::check()) {
-            return redirect()->route('login');
-        }
-
-        if ($request->user()->two_factor_verified_at !== null) {
-            return redirect()->route($this->dashboardRouteFor($request->user()->role?->slug));
-        }
-
-        $validated = $request->validate([
-            'channel' => ['required', 'in:email,sms'],
-        ]);
-
         $user = $request->user();
-        $channel = $validated['channel'];
+        $request->session()->regenerate();
 
-        if ($channel === 'sms' && blank($user->phone)) {
-            return back()->withErrors([
-                'channel' => 'Add a phone number to your account to use SMS verification.',
-            ]);
+        if ($this->roleSkipsTwoFactor($user)) {
+            $user->forceFill(['two_factor_verified_at' => now()])->save();
+
+            return redirect()->route(self::homeRouteFor($user));
         }
 
-        $request->session()->put('two_factor_channel', $channel);
-        $request->session()->put('two_factor.awaiting_method_choice', false);
-        $this->issueTwoFactorCode($user, $channel);
-
-        return redirect()->route('2fa.verify');
-    }
-
-    public function resetTwoFactorMethod(Request $request): RedirectResponse
-    {
-        if (! Auth::check()) {
-            return redirect()->route('login');
-        }
-
-        TwoFactorCode::query()->where('user_id', $request->user()->id)->delete();
-        $request->session()->put('two_factor.awaiting_method_choice', true);
-        $request->session()->forget('two_factor_channel');
+        $this->beginTwoFactorChallenge($request, $user);
 
         return redirect()->route('2fa.verify');
     }
@@ -165,7 +132,7 @@ class AuthController extends Controller
         }
 
         return view('auth.account-protected', [
-            'dashboardRoute' => $this->dashboardRouteFor($request->user()->role?->slug),
+            'continueRoute' => self::homeRouteFor($request->user()),
         ]);
     }
 
@@ -228,28 +195,32 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
-        if ($user->two_factor_verified_at !== null) {
+        if ($user->two_factor_verified_at !== null && ! $request->session()->has('two_factor.step')) {
             return redirect()->route($this->dashboardRouteFor($user->role?->slug));
         }
 
-        $awaitingChoice = $request->session()->get('two_factor.awaiting_method_choice');
+        $step = $request->session()->get('two_factor.step', 'choose');
 
-        if ($awaitingChoice === true) {
-            return view('auth.two-factor-choose', [
-                'hasPhone' => filled($user->phone),
-            ]);
+        if ($step === 'choose') {
+            if (! $this->hasDeliverableEmail($user)) {
+                return redirect()->route('2fa.collect-email');
+            }
+
+            if (! $this->userHasPendingTwoFactorCode($user)) {
+                if ($blocked = $this->blockedTwoFactorSendResponse($request)) {
+                    return $blocked;
+                }
+
+                $this->issueTwoFactorCode($user);
+                $this->recordTwoFactorCodeSend($request);
+            }
+
+            $request->session()->put('two_factor.step', 'verify');
         }
 
-        if ($awaitingChoice === false || ($awaitingChoice === null && $this->userHasPendingTwoFactorCode($user))) {
-            return view('auth.two-factor-verify', [
-                'twoFactorChannel' => session('two_factor_channel', 'email'),
-                'maskedEmail' => $this->maskEmail($user->email),
-                'maskedPhone' => $this->maskPhone($user->phone),
-            ]);
-        }
-
-        return view('auth.two-factor-choose', [
-            'hasPhone' => filled($user->phone),
+        return view('auth.two-factor-verify', [
+            'maskedEmail' => $this->maskEmail($user->email),
+            'resendCooldownSeconds' => $this->resendCooldownSeconds($request),
         ]);
     }
 
@@ -282,6 +253,7 @@ class AuthController extends Controller
         RateLimiter::clear($throttleKey);
         $record->delete();
         $request->user()->update(['two_factor_verified_at' => now()]);
+        $request->session()->forget(['two_factor.step', 'two_factor.last_sent_at']);
 
         return redirect()->route('account.protected');
     }
@@ -292,16 +264,51 @@ class AuthController extends Controller
             return redirect()->route('login');
         }
 
-        if ($request->session()->get('two_factor.awaiting_method_choice') !== false) {
-            return redirect()->route('2fa.verify')->withErrors([
-                'code' => 'Choose email or SMS verification first.',
-            ]);
+        if ($request->session()->get('two_factor.step') !== 'verify') {
+            return redirect()->route('2fa.verify');
         }
 
-        $channel = session('two_factor_channel', 'email');
-        $this->issueTwoFactorCode($request->user(), $channel);
+        $user = $request->user();
 
-        return back()->with('status', 'A new verification code was sent.');
+        if ($blocked = $this->blockedTwoFactorSendResponse($request)) {
+            return $blocked;
+        }
+
+        $this->issueTwoFactorCode($user);
+        $this->recordTwoFactorCodeSend($request);
+
+        return redirect()->route('2fa.verify')->with('status', 'A new verification code was sent.');
+    }
+
+    private function resendCooldownSeconds(Request $request): int
+    {
+        $lastSentAt = $request->session()->get('two_factor.last_sent_at');
+
+        if (! is_int($lastSentAt)) {
+            return 0;
+        }
+
+        $remaining = self::TWO_FACTOR_SEND_COOLDOWN_SECONDS - (now()->timestamp - $lastSentAt);
+
+        return max(0, $remaining);
+    }
+
+    private function blockedTwoFactorSendResponse(Request $request): ?RedirectResponse
+    {
+        $seconds = $this->resendCooldownSeconds($request);
+
+        if ($seconds <= 0) {
+            return null;
+        }
+
+        return redirect()->route('2fa.verify')->withErrors([
+            'resend' => "Please wait {$seconds} seconds before requesting another code.",
+        ]);
+    }
+
+    private function recordTwoFactorCodeSend(Request $request): void
+    {
+        $request->session()->put('two_factor.last_sent_at', now()->timestamp);
     }
 
     private function userHasPendingTwoFactorCode(?User $user): bool
@@ -327,17 +334,6 @@ class AuthController extends Controller
         $visible = $len <= 2 ? 1 : 3;
 
         return substr($local, 0, min($visible, $len)).str_repeat('*', max(0, $len - $visible)).'@'.$domain;
-    }
-
-    private function maskPhone(?string $phone): string
-    {
-        $digits = preg_replace('/\D/', '', (string) $phone) ?? '';
-
-        if (strlen($digits) < 4) {
-            return 'your phone number';
-        }
-
-        return str_repeat('*', max(0, strlen($digits) - 4)).substr($digits, -4);
     }
 
     public function logout(Request $request): RedirectResponse
@@ -372,7 +368,9 @@ class AuthController extends Controller
             'date_of_birth' => $idParsing['date_of_birth'] ?? $request->user()->date_of_birth,
         ]);
 
-        return back()->with('status', 'ID uploaded successfully.');
+        return redirect()
+            ->route(self::homeRouteFor($request->user()))
+            ->with('status', 'ID uploaded and verified successfully.');
     }
 
     public function socialLogin(string $provider): RedirectResponse
@@ -385,27 +383,40 @@ class AuthController extends Controller
         }
 
         $state = Str::random(40);
-        session()->put("oauth_state_{$provider}", $state);
+        session()->put($this->oauthStateSessionKey($provider), $state);
 
-        return redirect()->away($this->buildProviderAuthUrl($provider, $state));
+        return redirect()
+            ->away($this->buildProviderAuthUrl($provider, $state))
+            ->withCookie($this->makeOAuthStateCookie($provider, $state));
     }
 
     public function socialCallback(string $provider): RedirectResponse
     {
-        $expectedState = session()->pull("oauth_state_{$provider}");
+        if (request()->filled('error')) {
+            return $this->redirectToLoginWithOAuthError(
+                $provider,
+                (string) request('error_description', 'Sign-in was cancelled. Please try again.')
+            );
+        }
+
         $incomingState = request('state');
-        if (! $expectedState || ! is_string($incomingState) || ! hash_equals($expectedState, $incomingState)) {
-            return redirect()->route('login')->withErrors([
-                'email' => 'Invalid OAuth state. Please try again.',
-            ]);
+        $expectedState = session()->pull($this->oauthStateSessionKey($provider))
+            ?? request()->cookie($this->oauthStateCookieName($provider));
+
+        if (! is_string($incomingState) || $incomingState === '' || ! is_string($expectedState) || ! hash_equals($expectedState, $incomingState)) {
+            return $this->redirectToLoginWithOAuthError(
+                $provider,
+                'Invalid OAuth state. Please try again from the same browser tab (use http://localhost:8000).'
+            );
         }
 
         try {
             $socialUser = $this->fetchSocialUserFromProvider($provider, request('code'));
-        } catch (\Throwable $e) {
-            return redirect()->route('login')->withErrors([
-                'email' => ucfirst($provider).' social login failed. Please try again.',
-            ]);
+        } catch (\Throwable) {
+            return $this->redirectToLoginWithOAuthError(
+                $provider,
+                ucfirst($provider).' sign-in failed. Check OAuth credentials in .env and try again.'
+            );
         }
 
         $providerUserId = (string) ($socialUser['id'] ?? '');
@@ -424,9 +435,9 @@ class AuthController extends Controller
             ->first();
 
         if ($linkedAccount) {
-            $user = $linkedAccount->user;
+            $user = $this->syncSocialEmail($linkedAccount->user, $linkedAccount, $providerEmail);
         } else {
-            $email = $providerEmail ?: "{$provider}-{$providerUserId}@example.com";
+            $email = $this->resolveSocialUserEmail($provider, $providerUserId, $providerEmail);
             $citizenRoleId = Role::query()->firstOrCreate(['slug' => 'citizen'], ['name' => 'Citizen'])->id;
             $user = User::query()->firstOrCreate(
                 ['email' => $email],
@@ -450,12 +461,100 @@ class AuthController extends Controller
             );
         }
 
-        Auth::login($user);
-        $request = request();
-        $request->session()->regenerate();
-        $user->forceFill(['two_factor_verified_at' => now()])->save();
+        return $this->loginUserAfterAuth($user)
+            ->withoutCookie($this->oauthStateCookieName($provider));
+    }
 
-        return redirect()->route($this->dashboardRouteFor($user->role?->slug));
+    private function oauthStateSessionKey(string $provider): string
+    {
+        return "oauth_state_{$provider}";
+    }
+
+    private function oauthStateCookieName(string $provider): string
+    {
+        return "oauth_state_{$provider}";
+    }
+
+    private function makeOAuthStateCookie(string $provider, string $state): \Symfony\Component\HttpFoundation\Cookie
+    {
+        return cookie(
+            $this->oauthStateCookieName($provider),
+            $state,
+            10,
+            '/',
+            null,
+            request()->isSecure(),
+            true,
+            false,
+            'lax'
+        );
+    }
+
+    private function redirectToLoginWithOAuthError(string $provider, string $message): RedirectResponse
+    {
+        return redirect()
+            ->route('login')
+            ->withErrors(['email' => $message])
+            ->withoutCookie($this->oauthStateCookieName($provider));
+    }
+
+    public function showCollectEmailForTwoFactor(Request $request): View|RedirectResponse
+    {
+        if (! Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        if ($this->hasDeliverableEmail($request->user())) {
+            return redirect()->route(self::homeRouteFor($request->user()));
+        }
+
+        return view('auth.two-factor-collect-email');
+    }
+
+    public function storeCollectEmailForTwoFactor(Request $request): RedirectResponse
+    {
+        if (! Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$request->user()->id],
+        ]);
+
+        $request->user()->update(['email' => $validated['email']]);
+
+        return redirect()
+            ->route('2fa.verify')
+            ->with('status', 'Email saved. Check your inbox for a verification code.');
+    }
+
+    private function loginUserAfterAuth(User $user, ?Request $request = null): RedirectResponse
+    {
+        $request ??= request();
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        if ($this->roleSkipsTwoFactor($user)) {
+            $user->forceFill(['two_factor_verified_at' => now()])->save();
+
+            return redirect()->route(self::homeRouteFor($user));
+        }
+
+        $this->beginTwoFactorChallenge($request, $user);
+
+        if (! $this->hasDeliverableEmail($user)) {
+            return redirect()->route('2fa.collect-email');
+        }
+
+        return redirect()->route('2fa.verify');
+    }
+
+    private function beginTwoFactorChallenge(Request $request, User $user): void
+    {
+        $request->session()->regenerate();
+        $request->session()->put('two_factor.step', 'choose');
+        $request->session()->forget('two_factor.last_sent_at');
+        $user->forceFill(['two_factor_verified_at' => null])->save();
     }
 
     private function buildProviderAuthUrl(string $provider, string $state): string
@@ -482,7 +581,8 @@ class AuthController extends Controller
             'client_id' => $clientId,
             'redirect_uri' => $redirect,
             'state' => $state,
-            'scope' => 'email,public_profile',
+            // public_profile works without App Review; add email in Meta → Use cases → Facebook Login → Permissions first
+            'scope' => config('services.facebook.scope', 'public_profile'),
             'response_type' => 'code',
         ]);
 
@@ -557,7 +657,7 @@ class AuthController extends Controller
         ];
     }
 
-    private function issueTwoFactorCode(User $user, string $channel = 'email'): void
+    private function issueTwoFactorCode(User $user): void
     {
         $code = (string) random_int(100000, 999999);
         TwoFactorCode::query()->updateOrCreate(
@@ -565,20 +665,122 @@ class AuthController extends Controller
             ['code' => $code, 'expires_at' => now()->addMinutes(10)]
         );
 
-        $sentBySms = false;
-        if ($channel === 'sms' && filled($user->phone)) {
-            $sentBySms = app(SmsTwoFactorService::class)->send($user->phone, $code);
-        }
-
-        if (! $sentBySms) {
-            try {
-                Mail::to($user->email)->send(new TwoFactorCodeMail($code));
-            } catch (\Throwable) {
-                // Keep authentication flow alive even if mail transport is misconfigured.
-            }
-        }
-
         $user->forceFill(['two_factor_verified_at' => null])->save();
+
+        if ($this->hasDeliverableEmail($user)) {
+            $email = $user->email;
+            dispatch(function () use ($email, $code): void {
+                try {
+                    Mail::to($email)->send(new TwoFactorCodeMail($code));
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            })->afterResponse();
+        }
+    }
+
+    private function hasDeliverableEmail(User $user): bool
+    {
+        $email = $user->email;
+
+        if (! is_string($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        $domain = strtolower((string) substr(strrchr($email, '@'), 1));
+
+        if (app()->environment('local')) {
+            return true;
+        }
+
+        return ! in_array($domain, ['example.com', 'example.org', 'example.net'], true);
+    }
+
+    private function roleSkipsTwoFactor(User $user): bool
+    {
+        return $user->role?->slug === 'admin';
+    }
+
+    private function resolveSocialUserEmail(string $provider, string $providerUserId, ?string $providerEmail): string
+    {
+        if (is_string($providerEmail) && $providerEmail !== '' && filter_var($providerEmail, FILTER_VALIDATE_EMAIL)) {
+            return $providerEmail;
+        }
+
+        return "{$provider}-{$providerUserId}@example.com";
+    }
+
+    private function syncSocialEmail(User $user, SocialAccount $linkedAccount, ?string $providerEmail): User
+    {
+        if (! is_string($providerEmail) || $providerEmail === '' || ! filter_var($providerEmail, FILTER_VALIDATE_EMAIL)) {
+            return $user;
+        }
+
+        if ($linkedAccount->provider_email !== $providerEmail) {
+            $linkedAccount->update(['provider_email' => $providerEmail]);
+        }
+
+        if ($this->hasDeliverableEmail($user)) {
+            return $user;
+        }
+
+        $existingUser = User::query()
+            ->where('email', $providerEmail)
+            ->whereKeyNot($user->id)
+            ->first();
+
+        if ($existingUser) {
+            $linkedAccount->update(['user_id' => $existingUser->id]);
+            $this->deletePlaceholderUserIfOrphaned($user);
+
+            return $existingUser;
+        }
+
+        try {
+            $user->update(['email' => $providerEmail]);
+        } catch (UniqueConstraintViolationException $exception) {
+            $existingUser = User::query()->where('email', $providerEmail)->first();
+
+            if (! $existingUser) {
+                throw $exception;
+            }
+
+            $linkedAccount->update(['user_id' => $existingUser->id]);
+            $this->deletePlaceholderUserIfOrphaned($user);
+
+            return $existingUser;
+        }
+
+        return $user->fresh() ?? $user;
+    }
+
+    private function deletePlaceholderUserIfOrphaned(User $user): void
+    {
+        $user->refresh();
+
+        if ($this->hasDeliverableEmail($user) || $user->socialAccounts()->exists()) {
+            return;
+        }
+
+        TwoFactorCode::query()->where('user_id', $user->id)->delete();
+        $user->delete();
+    }
+
+    public static function homeRouteFor(?User $user): string
+    {
+        if ($user === null) {
+            return 'login';
+        }
+
+        if ($user->two_factor_verified_at === null) {
+            return '2fa.verify';
+        }
+
+        if ($user->needsIdDocument()) {
+            return 'id-upload';
+        }
+
+        return (new self)->dashboardRouteFor($user->role?->slug);
     }
 
     private function dashboardRouteFor(?string $roleSlug): string
@@ -586,7 +788,8 @@ class AuthController extends Controller
         return match ($roleSlug) {
             'admin' => 'dashboard.admin',
             'office_staff' => 'dashboard.staff',
-            default => 'dashboard.citizen',
+            'citizen' => 'citizen.dashboard',
+            default => 'login',
         };
     }
 }

@@ -1,0 +1,11 @@
+#!/bin/sh
+# Remove Cursor/AI co-author trailers injected by the IDE (keeps commits attributed to git user only).
+
+msg_file=$1
+[ -n "$msg_file" ] && [ -f "$msg_file" ] || exit 0
+
+tmp=$(mktemp)
+grep -viE '^[[:space:]]*co-authored-by:.*(cursor|cursoragent|cursor-agent|openai|anthropic|copilot|chatgpt)' "$msg_file" > "$tmp" || true
+mv "$tmp" "$msg_file"
+
+exit 0

@@ -1,0 +1,12 @@
+#!/bin/sh
+# Reject commit messages that credit Cursor or other AI agents.
+
+msg_file=$1
+[ -n "$msg_file" ] && [ -f "$msg_file" ] || exit 0
+
+if grep -qiE '^[[:space:]]*co-authored-by:.*(cursor|cursoragent|cursor-agent|openai|anthropic|copilot|chatgpt)' "$msg_file"; then
+    echo "error: Remove AI Co-authored-by lines from the commit message." >&2
+    exit 1
+fi
+
+exit 0

@@ -1,16 +1,61 @@
-<x-layouts.guest>
-    <h1 class="auth-title">ID Upload</h1>
-    <p class="auth-subtitle">Upload or replace your identification document.</p>
+<x-layouts.auth-flow title="ID Upload — WebDev2">
+    <h1 class="twofa-title">Upload your ID</h1>
+    <p class="twofa-sub">We need a photo of your ID to verify your citizen account. Information will be read automatically when OCR is configured.</p>
+
+    @if (session('status'))
+        <p class="twofa-inline-success">{{ session('status') }}</p>
+    @endif
 
     <form method="POST" action="{{ route('id-upload.store') }}" enctype="multipart/form-data" class="auth-form">
         @csrf
-        <label for="id_document">ID Upload</label>
-        <input id="id_document" type="file" name="id_document" required>
+        <label class="field-label" for="id_document">ID document (JPG, PNG, or PDF)</label>
+        <div class="input-shell input-shell--file">
+            <input id="id_document" type="file" name="id_document" accept=".jpg,.jpeg,.png,.pdf" required class="input-file-native">
+        </div>
 
-        <button type="submit" class="btn-primary">Upload</button>
+        @error('id_document')
+            <p class="twofa-inline-error">{{ $message }}</p>
+        @enderror
+
+        <div id="id-preview" class="id-preview" hidden>
+            <p class="field-hint-block">Detected from your ID:</p>
+            <p><strong>Name:</strong> <span id="preview-name">—</span></p>
+            <p><strong>Date of birth:</strong> <span id="preview-dob">—</span></p>
+        </div>
+
+        <button type="submit" class="btn-primary btn-block">Upload and continue</button>
     </form>
 
-    <div class="auth-links">
-        <a href="{{ route('dashboard.citizen') }}">Back to dashboard</a>
-    </div>
-</x-layouts.guest>
+    @push('scripts')
+        <script>
+            (function () {
+                var input = document.getElementById('id_document');
+                var preview = document.getElementById('id-preview');
+                var token = document.querySelector('meta[name="csrf-token"]');
+                if (!input || !token) return;
+
+                input.addEventListener('change', function () {
+                    if (!input.files || !input.files[0]) return;
+                    var data = new FormData();
+                    data.append('id_document', input.files[0]);
+                    data.append('_token', token.getAttribute('content'));
+
+                    fetch('{{ route('api.id-document.parse') }}', {
+                        method: 'POST',
+                        body: data,
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(function (r) { return r.json(); })
+                        .then(function (json) {
+                            if (!json.parsed) return;
+                            preview.hidden = false;
+                            document.getElementById('preview-name').textContent = json.name || '—';
+                            document.getElementById('preview-dob').textContent = json.date_of_birth || '—';
+                        })
+                        .catch(function () {});
+                });
+            })();
+        </script>
+    @endpush
+</x-layouts.auth-flow>

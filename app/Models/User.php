@@ -18,6 +18,7 @@ use Illuminate\Notifications\Notifiable;
     'email_verified_at',
     'password',
     'role_id',
+    'office_id',
     'id_document_path',
     'date_of_birth',
     'phone',
@@ -41,6 +42,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'date_of_birth' => 'date',
             'phone' => 'encrypted',
+            'id_document_path' => 'encrypted',
             'two_factor_verified_at' => 'datetime',
         ];
     }
@@ -50,8 +52,23 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    public function office(): BelongsTo
+    {
+        return $this->belongsTo(Office::class);
+    }
+
     public function socialAccounts(): HasMany
     {
         return $this->hasMany(SocialAccount::class);
+    }
+
+    public function isCitizen(): bool
+    {
+        return $this->role?->slug === 'citizen';
+    }
+
+    public function needsIdDocument(): bool
+    {
+        return $this->isCitizen() && blank($this->id_document_path);
     }
 }

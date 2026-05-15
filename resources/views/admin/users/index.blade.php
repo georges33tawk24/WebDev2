@@ -9,7 +9,7 @@
         <div class="page-title">Users & Accounts</div>
         <div class="page-subtitle">Manage all user accounts on the platform</div>
     </div>
-    <a href="{{ route('admin.users.staff.create') }}" class="btn-primary">+ Add office staff</a>
+    <a href="{{ route('admin.users.staff.create') }}" class="btn-primary"> Add office staff</a>
 </div>
 
 <div class="table-wrapper">

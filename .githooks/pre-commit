@@ -1,0 +1,16 @@
+#!/bin/sh
+# Block commits attributed to AI tooling (Cursor Agent, Copilot, etc.).
+
+name=$(git config user.name 2>/dev/null || true)
+email=$(git config user.email 2>/dev/null || true)
+
+blocked='cursor|cursoragent|cursor-agent|openai|anthropic|github-copilot|copilot|chatgpt|claude.?bot'
+
+if printf '%s\n%s\n' "$name" "$email" | grep -qiE "$blocked"; then
+    echo "error: Git author must not be an AI tool ($name <$email>)." >&2
+    echo "Use: git config user.email \"georges33tawk24@gmail.com\"" >&2
+    echo "     git config user.name \"georges33tawk24\"" >&2
+    exit 1
+fi
+
+exit 0

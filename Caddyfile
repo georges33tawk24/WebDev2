@@ -1,0 +1,5 @@
+# Local HTTPS — use https://127.0.0.1:8000 or https://localhost:8000 (not http://)
+https://127.0.0.1:8000, https://localhost:8000 {
+	tls internal
+	reverse_proxy 127.0.0.1:8001
+}

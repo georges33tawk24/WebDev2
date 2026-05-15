@@ -16,8 +16,13 @@ class EnsureRole
             $targetRoute = match ($user?->role?->slug) {
                 'admin' => 'dashboard.admin',
                 'office_staff' => 'dashboard.staff',
-                default => 'dashboard.citizen',
+                'citizen' => 'citizen.dashboard',
+                default => 'login',
             };
+
+            if ($request->routeIs($targetRoute)) {
+                abort(403, 'Your account does not have permission to access this area.');
+            }
 
             return redirect()->route($targetRoute)
                 ->withErrors(['role' => 'You are not authorized to access that page.']);

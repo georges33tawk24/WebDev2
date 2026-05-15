@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Office;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -37,7 +38,17 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password123'),
             'role_id' => $adminRole->id,
             'email_verified_at' => now(),
+            'two_factor_verified_at' => now(),
         ]);
+
+        $office = Office::query()->firstOrCreate(
+            ['name' => 'Beirut Municipality Office'],
+            [
+                'municipality' => 'Beirut',
+                'address' => 'Municipality Square',
+                'contact_email' => 'contact@municipality.example',
+            ]
+        );
 
         User::query()->updateOrCreate([
             'email' => 'staff@example.com',
@@ -45,7 +56,9 @@ class DatabaseSeeder extends Seeder
             'name' => 'Office Staff',
             'password' => Hash::make('password123'),
             'role_id' => $staffRole->id,
+            'office_id' => $office->id,
             'email_verified_at' => now(),
+            'two_factor_verified_at' => now(),
         ]);
 
         User::query()->updateOrCreate([
@@ -55,6 +68,8 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password123'),
             'role_id' => $citizenRole->id,
             'email_verified_at' => now(),
+            'two_factor_verified_at' => now(),
+            'id_document_path' => 'ids/seed-placeholder.jpg',
         ]);
     }
 }

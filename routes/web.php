@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\IdDocumentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return redirect()->route(AuthController::homeRouteFor(Auth::user()));
 });
 
 Route::middleware('guest')->group(function (): void {
@@ -17,6 +19,9 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+    Route::post('/register/id-preview', [IdDocumentController::class, 'parse'])
+        ->middleware('throttle:10,1')
+        ->name('register.id-preview');
     Route::get('/auth/{provider}/redirect', [AuthController::class, 'socialLogin'])
         ->whereIn('provider', ['google', 'facebook'])
         ->name('oauth.redirect');
@@ -27,9 +32,9 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/2fa/email', [AuthController::class, 'showCollectEmailForTwoFactor'])->name('2fa.collect-email');
+    Route::post('/2fa/email', [AuthController::class, 'storeCollectEmailForTwoFactor'])->name('2fa.collect-email.store');
     Route::get('/2fa', [AuthController::class, 'showTwoFactor'])->name('2fa.verify');
-    Route::post('/2fa/method', [AuthController::class, 'chooseTwoFactorMethod'])->name('2fa.method');
-    Route::post('/2fa/reset-method', [AuthController::class, 'resetTwoFactorMethod'])->name('2fa.reset-method');
     Route::post('/2fa/defer', [AuthController::class, 'deferTwoFactor'])->name('2fa.defer');
     Route::post('/2fa', [AuthController::class, 'verifyTwoFactor'])->name('2fa.verify.submit');
     Route::post('/2fa/resend', [AuthController::class, 'resendTwoFactor'])->name('2fa.resend');
@@ -37,8 +42,14 @@ Route::middleware('auth')->group(function (): void {
 });
 
 Route::middleware(['auth', '2fa'])->group(function (): void {
+    Route::post('/api/id-document/parse', [IdDocumentController::class, 'parse'])
+        ->middleware('throttle:30,1')
+        ->name('api.id-document.parse');
+
     Route::get('/id-upload', [AuthController::class, 'showIdUpload'])->name('id-upload');
-    Route::post('/id-upload', [AuthController::class, 'storeIdUpload'])->name('id-upload.store');
+    Route::post('/id-upload', [AuthController::class, 'storeIdUpload'])
+        ->middleware('throttle:10,1')
+        ->name('id-upload.store');
 
     Route::get('/dashboard/admin', [DashboardController::class, 'admin'])
         ->middleware('role:admin')
@@ -46,8 +57,8 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
     Route::get('/dashboard/staff', [DashboardController::class, 'staff'])
         ->middleware('role:office_staff')
         ->name('dashboard.staff');
-    Route::get('/dashboard/citizen', [DashboardController::class, 'citizen'])
-        ->middleware('role:citizen')
+    Route::get('/dashboard/citizen', fn () => redirect()->route('citizen.dashboard'))
+        ->middleware(['role:citizen', 'citizen.id'])
         ->name('dashboard.citizen');
 
     // Admin Routes
@@ -60,6 +71,8 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
         Route::delete('/offices/{office}', [\App\Http\Controllers\Admin\OfficeController::class, 'destroy'])->name('offices.destroy');
 
         Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
+        Route::get('/users/staff/create', [\App\Http\Controllers\Admin\UserController::class, 'createStaff'])->name('users.staff.create');
+        Route::post('/users/staff', [\App\Http\Controllers\Admin\UserController::class, 'storeStaff'])->name('users.staff.store');
         Route::get('/citizens', [\App\Http\Controllers\Admin\UserController::class, 'citizens'])->name('citizens.index');
         Route::patch('/users/{user}/toggle', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])->name('users.toggle');
         Route::resource('categories', \App\Http\Controllers\Admin\CategoryController::class);
@@ -67,37 +80,36 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
 
         Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
     });
-        // Staff Routes
- Route::middleware('role:office_staff')->prefix('staff')->name('staff.')->group(function () {
-    Route::get('/requests', [\App\Http\Controllers\Staff\RequestController::class, 'index'])->name('requests.index');
-    Route::get('/requests/{serviceRequest}', [\App\Http\Controllers\Staff\RequestController::class, 'show'])->name('requests.show');
-    Route::patch('/requests/{serviceRequest}/status', [\App\Http\Controllers\Staff\RequestController::class, 'updateStatus'])->name('requests.updateStatus');
-    Route::post('/requests/{serviceRequest}/document', [\App\Http\Controllers\Staff\RequestController::class, 'uploadDocument'])->name('requests.uploadDocument');
+
+    // Staff Routes
+    Route::middleware('role:office_staff')->prefix('staff')->name('staff.')->group(function () {
+        Route::get('/requests', [\App\Http\Controllers\Staff\RequestController::class, 'index'])->name('requests.index');
+        Route::get('/requests/{serviceRequest}', [\App\Http\Controllers\Staff\RequestController::class, 'show'])->name('requests.show');
+        Route::patch('/requests/{serviceRequest}/status', [\App\Http\Controllers\Staff\RequestController::class, 'updateStatus'])->name('requests.updateStatus');
+        Route::post('/requests/{serviceRequest}/document', [\App\Http\Controllers\Staff\RequestController::class, 'uploadDocument'])->name('requests.uploadDocument');
+    });
+
+    // Citizen portal (Chris module)
+    Route::middleware(['role:citizen', 'citizen.id'])->prefix('citizen')->name('citizen.')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\Citizen\CitizenController::class, 'dashboard'])->name('dashboard');
+
+        Route::get('/services', [\App\Http\Controllers\Citizen\CitizenController::class, 'services'])->name('services');
+        Route::get('/services/{service}', [\App\Http\Controllers\Citizen\CitizenController::class, 'showService'])->name('services.show');
+
+        Route::get('/requests', [\App\Http\Controllers\Citizen\CitizenController::class, 'requests'])->name('requests');
+        Route::get('/requests/create/{service}', [\App\Http\Controllers\Citizen\CitizenController::class, 'createRequest'])->name('requests.create');
+        Route::post('/requests/store', [\App\Http\Controllers\Citizen\CitizenController::class, 'storeRequest'])->name('requests.store');
+
+        Route::get('/payments', [\App\Http\Controllers\Citizen\CitizenController::class, 'payments'])->name('payments');
+        Route::get('/payments/{serviceRequest}', [\App\Http\Controllers\Citizen\CitizenController::class, 'paymentPage'])->name('payments.show');
+        Route::post('/payments/{serviceRequest}', [\App\Http\Controllers\Citizen\CitizenController::class, 'processPayment'])->name('payments.process');
+
+        Route::get('/maps', [\App\Http\Controllers\Citizen\CitizenController::class, 'maps'])->name('maps');
+
+        Route::get('/appointments', [\App\Http\Controllers\Citizen\CitizenController::class, 'appointments'])->name('appointments');
+        Route::get('/appointments/create/{office}', [\App\Http\Controllers\Citizen\CitizenController::class, 'createAppointment'])->name('appointments.create');
+        Route::post('/appointments/store', [\App\Http\Controllers\Citizen\CitizenController::class, 'storeAppointment'])->name('appointments.store');
+
+        Route::get('/history', [\App\Http\Controllers\Citizen\CitizenController::class, 'history'])->name('history');
+    });
 });
- // Citizen Routes
-Route::middleware('role:citizen')->prefix('citizen')->name('citizen.')->group(function () {
-    Route::get('/dashboard', [\App\Http\Controllers\Citizen\CitizenController::class, 'dashboard'])->name('dashboard');
-
-    Route::get('/services', [\App\Http\Controllers\Citizen\CitizenController::class, 'services'])->name('services');
-    Route::get('/services/{service}', [\App\Http\Controllers\Citizen\CitizenController::class, 'showService'])->name('services.show');
-
-    Route::get('/requests', [\App\Http\Controllers\Citizen\CitizenController::class, 'requests'])->name('requests');
-    Route::get('/requests/create/{service}', [\App\Http\Controllers\Citizen\CitizenController::class, 'createRequest'])->name('requests.create');
-    Route::post('/requests/store', [\App\Http\Controllers\Citizen\CitizenController::class, 'storeRequest'])->name('requests.store');
-
-    Route::get('/payments', [\App\Http\Controllers\Citizen\CitizenController::class, 'payments'])->name('payments');
-    Route::get('/payments/{serviceRequest}', [\App\Http\Controllers\Citizen\CitizenController::class, 'paymentPage'])->name('payments.show');
-    Route::post('/payments/{serviceRequest}', [\App\Http\Controllers\Citizen\CitizenController::class, 'processPayment'])->name('payments.process');
-
-    Route::get('/maps', [\App\Http\Controllers\Citizen\CitizenController::class, 'maps'])->name('maps');
-
-    Route::get('/appointments', [\App\Http\Controllers\Citizen\CitizenController::class, 'appointments'])->name('appointments');
-    Route::get('/appointments/create/{office}', [\App\Http\Controllers\Citizen\CitizenController::class, 'createAppointment'])->name('appointments.create');
-    Route::post('/appointments/store', [\App\Http\Controllers\Citizen\CitizenController::class, 'storeAppointment'])->name('appointments.store');
-
-    Route::get('/history', [\App\Http\Controllers\Citizen\CitizenController::class, 'history'])->name('history');
- });
- });
-
-    
-

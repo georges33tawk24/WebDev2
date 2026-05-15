@@ -45,17 +45,12 @@ return [
         'client_id' => env('FACEBOOK_CLIENT_ID'),
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
         'redirect' => env('FACEBOOK_REDIRECT_URI'),
+        'scope' => env('FACEBOOK_LOGIN_SCOPE', 'public_profile'),
     ],
 
     'id_ocr' => [
         'url' => env('ID_OCR_API_URL'),
         'token' => env('ID_OCR_API_TOKEN'),
-    ],
-
-    'twilio' => [
-        'sid' => env('TWILIO_SID'),
-        'token' => env('TWILIO_AUTH_TOKEN'),
-        'from' => env('TWILIO_FROM'),
     ],
 
     'oauth' => [

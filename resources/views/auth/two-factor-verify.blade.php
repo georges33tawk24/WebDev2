@@ -1,20 +1,15 @@
 <x-layouts.auth-flow title="Verify — WebDev2">
     <div class="twofa-back-row">
-        <form method="POST" action="{{ route('2fa.reset-method') }}" class="twofa-back-form">
+        <form method="POST" action="{{ route('logout') }}" class="twofa-back-form">
             @csrf
-            <button type="submit" class="btn-icon-back" aria-label="Choose another method">
+            <button type="submit" class="btn-icon-back" aria-label="Sign out and go back">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
         </form>
     </div>
 
-    @if ($twoFactorChannel === 'sms')
-        <h1 class="twofa-title">Verify with SMS</h1>
-        <p class="twofa-sub">Enter the code we sent to <strong>{{ $maskedPhone }}</strong>.</p>
-    @else
-        <h1 class="twofa-title">Verify your email</h1>
-        <p class="twofa-sub">Enter the code we sent to <strong>{{ $maskedEmail }}</strong>.</p>
-    @endif
+    <h1 class="twofa-title">Verify your email</h1>
+    <p class="twofa-sub">Enter the code we sent to <strong>{{ $maskedEmail }}</strong>.</p>
 
     <form method="POST" action="{{ route('2fa.verify.submit') }}" class="otp-form" id="otp-form">
         @csrf
@@ -39,6 +34,10 @@
             <p class="twofa-inline-error">{{ $message }}</p>
         @enderror
 
+        @error('resend')
+            <p class="twofa-inline-error">{{ $message }}</p>
+        @enderror
+
         <button type="submit" class="btn-primary btn-block twofa-submit">Verify</button>
     </form>
 
@@ -46,10 +45,6 @@
         <form method="POST" action="{{ route('2fa.resend') }}" id="resend-form">
             @csrf
             <button type="submit" class="btn-text-link" id="resend-btn">Didn’t receive the code? <span id="resend-label">Resend</span></button>
-        </form>
-        <form method="POST" action="{{ route('2fa.reset-method') }}" class="twofa-alt-method-form">
-            @csrf
-            <button type="submit" class="btn-text-muted">Use a different method</button>
         </form>
     </div>
 
@@ -92,7 +87,13 @@
 
                 var resendBtn = document.getElementById('resend-btn');
                 var resendLabel = document.getElementById('resend-label');
-                var seconds = 45;
+                var resendForm = document.getElementById('resend-form');
+                var seconds = {{ (int) ($resendCooldownSeconds ?? 0) }};
+
+                function formatCountdown(remaining) {
+                    return String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0');
+                }
+
                 function tick() {
                     if (seconds <= 0) {
                         resendBtn.disabled = false;
@@ -100,10 +101,17 @@
                         return;
                     }
                     resendBtn.disabled = true;
-                    resendLabel.textContent = 'Resend (' + String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0') + ')';
+                    resendLabel.textContent = 'Resend in ' + formatCountdown(seconds);
                     seconds -= 1;
                     setTimeout(tick, 1000);
                 }
+
+                resendForm.addEventListener('submit', function (e) {
+                    if (resendBtn.disabled) {
+                        e.preventDefault();
+                    }
+                });
+
                 tick();
             })();
         </script>

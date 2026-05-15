@@ -9,6 +9,7 @@
         <div class="page-title">Users & Accounts</div>
         <div class="page-subtitle">Manage all user accounts on the platform</div>
     </div>
+    <a href="{{ route('admin.users.staff.create') }}" class="btn-primary">+ Add office staff</a>
 </div>
 
 <div class="table-wrapper">
@@ -18,6 +19,7 @@
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
+                <th>Office</th>
                 <th>Status</th>
                 <th>Joined</th>
                 <th>Actions</th>
@@ -33,6 +35,7 @@
                         {{ ucfirst(str_replace('_', ' ', $user->role?->slug ?? 'N/A')) }}
                     </span>
                 </td>
+                <td style="color:#6b7280;">{{ $user->office?->name ?? '—' }}</td>
                 <td>
                     @if($user->email_verified_at)
                         <span class="badge badge-active">Active</span>
@@ -53,7 +56,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="6" style="text-align:center; color:#6b7280; padding:32px;">No users found.</td>
+                <td colspan="7" style="text-align:center; color:#6b7280; padding:32px;">No users found.</td>
             </tr>
             @endforelse
         </tbody>

@@ -25,7 +25,7 @@
             <input id="email" type="email" name="email" value="{{ old('email') }}" placeholder="you@example.com" required autocomplete="email">
         </div>
 
-        <label class="field-label" for="phone">Phone <span class="field-hint">(optional, for SMS 2FA)</span></label>
+        <label class="field-label" for="phone">Phone <span class="field-hint">(optional)</span></label>
         <div class="input-shell">
             <span class="input-icon input-icon--left" aria-hidden="true">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
@@ -38,6 +38,12 @@
             <input id="id_document" type="file" name="id_document" accept=".jpg,.jpeg,.png,.pdf" required class="input-file-native">
         </div>
         <p class="field-hint-block">JPG, PNG, or PDF — max 5&nbsp;MB.</p>
+
+        <div id="register-id-preview" class="id-preview" hidden>
+            <p class="field-hint-block">Detected from your ID:</p>
+            <p><strong>Name:</strong> <span id="register-preview-name">—</span></p>
+            <p><strong>Date of birth:</strong> <span id="register-preview-dob">—</span></p>
+        </div>
 
         <label class="field-label" for="password">Password</label>
         <div class="input-shell">
@@ -76,6 +82,39 @@
 
     @push('scripts')
         <script>
+            (function () {
+                var input = document.getElementById('id_document');
+                var preview = document.getElementById('register-id-preview');
+                var token = document.querySelector('meta[name="csrf-token"]');
+                if (!input || !token || !preview) return;
+
+                input.addEventListener('change', function () {
+                    if (!input.files || !input.files[0]) return;
+                    var data = new FormData();
+                    data.append('id_document', input.files[0]);
+                    data.append('_token', token.getAttribute('content'));
+
+                    fetch('{{ route('register.id-preview') }}', {
+                        method: 'POST',
+                        body: data,
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(function (r) { return r.json(); })
+                        .then(function (json) {
+                            if (!json.parsed) return;
+                            preview.hidden = false;
+                            var nameInput = document.getElementById('name');
+                            if (json.name && nameInput && !nameInput.value) {
+                                nameInput.value = json.name;
+                            }
+                            document.getElementById('register-preview-name').textContent = json.name || '—';
+                            document.getElementById('register-preview-dob').textContent = json.date_of_birth || '—';
+                        })
+                        .catch(function () {});
+                });
+            })();
+
             document.querySelectorAll('[data-toggle-pass]').forEach(function (btn) {
                 btn.addEventListener('click', function () {
                     var id = btn.getAttribute('aria-controls');

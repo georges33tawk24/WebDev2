@@ -15,5 +15,5 @@
     <h1 class="twofa-title twofa-title--success">Your account is now protected!</h1>
     <p class="twofa-sub">You can access your dashboard with two-factor verification enabled.</p>
 
-    <a href="{{ route($dashboardRoute) }}" class="btn-primary btn-block success-cta">Continue to Dashboard</a>
+    <a href="{{ route($continueRoute) }}" class="btn-primary btn-block success-cta">Continue</a>
 </x-layouts.auth-flow>

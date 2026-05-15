@@ -44,4 +44,29 @@ class ServiceRequest extends Model
     {
         return $this->hasMany(RequestStatusHistory::class);
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
+
+    public function feedback()
+    {
+        return $this->hasMany(Feedback::class);
+    }
+
+    public function qrCodes()
+    {
+        return $this->hasMany(QrCode::class);
+    }
 }

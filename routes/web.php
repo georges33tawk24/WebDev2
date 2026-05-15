@@ -74,5 +74,30 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
     Route::patch('/requests/{serviceRequest}/status', [\App\Http\Controllers\Staff\RequestController::class, 'updateStatus'])->name('requests.updateStatus');
     Route::post('/requests/{serviceRequest}/document', [\App\Http\Controllers\Staff\RequestController::class, 'uploadDocument'])->name('requests.uploadDocument');
 });
-});
+ // Citizen Routes
+Route::middleware('role:citizen')->prefix('citizen')->name('citizen.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Citizen\CitizenController::class, 'dashboard'])->name('dashboard');
+
+    Route::get('/services', [\App\Http\Controllers\Citizen\CitizenController::class, 'services'])->name('services');
+    Route::get('/services/{service}', [\App\Http\Controllers\Citizen\CitizenController::class, 'showService'])->name('services.show');
+
+    Route::get('/requests', [\App\Http\Controllers\Citizen\CitizenController::class, 'requests'])->name('requests');
+    Route::get('/requests/create/{service}', [\App\Http\Controllers\Citizen\CitizenController::class, 'createRequest'])->name('requests.create');
+    Route::post('/requests/store', [\App\Http\Controllers\Citizen\CitizenController::class, 'storeRequest'])->name('requests.store');
+
+    Route::get('/payments', [\App\Http\Controllers\Citizen\CitizenController::class, 'payments'])->name('payments');
+    Route::get('/payments/{serviceRequest}', [\App\Http\Controllers\Citizen\CitizenController::class, 'paymentPage'])->name('payments.show');
+    Route::post('/payments/{serviceRequest}', [\App\Http\Controllers\Citizen\CitizenController::class, 'processPayment'])->name('payments.process');
+
+    Route::get('/maps', [\App\Http\Controllers\Citizen\CitizenController::class, 'maps'])->name('maps');
+
+    Route::get('/appointments', [\App\Http\Controllers\Citizen\CitizenController::class, 'appointments'])->name('appointments');
+    Route::get('/appointments/create/{office}', [\App\Http\Controllers\Citizen\CitizenController::class, 'createAppointment'])->name('appointments.create');
+    Route::post('/appointments/store', [\App\Http\Controllers\Citizen\CitizenController::class, 'storeAppointment'])->name('appointments.store');
+
+    Route::get('/history', [\App\Http\Controllers\Citizen\CitizenController::class, 'history'])->name('history');
+ });
+ });
+
     
+

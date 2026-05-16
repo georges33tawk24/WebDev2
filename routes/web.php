@@ -88,9 +88,9 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
         Route::patch('/requests/{serviceRequest}/status', [\App\Http\Controllers\Staff\RequestController::class, 'updateStatus'])->name('requests.updateStatus');
         Route::post('/requests/{serviceRequest}/document', [\App\Http\Controllers\Staff\RequestController::class, 'uploadDocument'])->name('requests.uploadDocument');
     });
-
-    // Citizen portal (Chris module)
-    Route::middleware(['role:citizen', 'citizen.id'])->prefix('citizen')->name('citizen.')->group(function () {
+    //Route::middleware(['citizen.id','role:citizen'])->prefix('citizen')->name('citizen.')->group(function () {
+// Citizen portal (Chris module)
+ Route::middleware(['role:citizen', 'citizen.id'])->prefix('citizen')->name('citizen.')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Citizen\CitizenController::class, 'dashboard'])->name('dashboard');
 
         Route::get('/services', [\App\Http\Controllers\Citizen\CitizenController::class, 'services'])->name('services');
@@ -112,4 +112,6 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
 
         Route::get('/history', [\App\Http\Controllers\Citizen\CitizenController::class, 'history'])->name('history');
     });
+
+    
 });

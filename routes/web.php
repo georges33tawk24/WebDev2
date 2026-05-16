@@ -87,6 +87,10 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
         Route::get('/requests/{serviceRequest}', [\App\Http\Controllers\Staff\RequestController::class, 'show'])->name('requests.show');
         Route::patch('/requests/{serviceRequest}/status', [\App\Http\Controllers\Staff\RequestController::class, 'updateStatus'])->name('requests.updateStatus');
         Route::post('/requests/{serviceRequest}/document', [\App\Http\Controllers\Staff\RequestController::class, 'uploadDocument'])->name('requests.uploadDocument');
+        Route::get('/office', [\App\Http\Controllers\Staff\OfficeProfileController::class, 'edit'])->name('office.edit');
+        Route::put('/office', [\App\Http\Controllers\Staff\OfficeProfileController::class, 'update'])->name('office.update');
+        Route::get('/feedback', [\App\Http\Controllers\Staff\FeedbackController::class, 'index'])->name('feedback.index');
+        Route::post('/feedback/{feedback}/reply', [\App\Http\Controllers\Staff\FeedbackController::class, 'reply'])->name('feedback.reply');
     });
 
     // Citizen portal (Chris module)

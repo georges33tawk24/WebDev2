@@ -24,9 +24,25 @@ class DashboardController extends Controller
     }
 
     public function staff(): View
-    {
-        return view('dashboard.staff');
-    }
+{
+    $user = auth()->user();
+    $officeId = $user->office_id;
+
+    $totalRequests   = \App\Models\ServiceRequest::where('office_id', $officeId)->count();
+    $pendingRequests = \App\Models\ServiceRequest::where('office_id', $officeId)->where('status', 'pending')->count();
+    $approvedRequests = \App\Models\ServiceRequest::where('office_id', $officeId)->where('status', 'approved')->count();
+    $completedRequests = \App\Models\ServiceRequest::where('office_id', $officeId)->where('status', 'completed')->count();
+    $recentRequests  = \App\Models\ServiceRequest::with(['citizen', 'service'])
+        ->where('office_id', $officeId)
+        ->latest()
+        ->take(5)
+        ->get();
+
+    return view('dashboard.staff', compact(
+        'totalRequests', 'pendingRequests', 'approvedRequests',
+        'completedRequests', 'recentRequests'
+    ));
+}
 
     public function citizen(): View
     {

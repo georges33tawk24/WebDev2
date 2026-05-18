@@ -92,9 +92,9 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
         Route::get('/feedback', [\App\Http\Controllers\Staff\FeedbackController::class, 'index'])->name('feedback.index');
         Route::post('/feedback/{feedback}/reply', [\App\Http\Controllers\Staff\FeedbackController::class, 'reply'])->name('feedback.reply');
     });
-
-    // Citizen portal (Chris module)
-    Route::middleware(['role:citizen', 'citizen.id'])->prefix('citizen')->name('citizen.')->group(function () {
+    //Route::middleware(['citizen.id','role:citizen'])->prefix('citizen')->name('citizen.')->group(function () {
+// Citizen portal (Chris module)
+ Route::middleware(['role:citizen', 'citizen.id'])->prefix('citizen')->name('citizen.')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Citizen\CitizenController::class, 'dashboard'])->name('dashboard');
 
         Route::get('/services', [\App\Http\Controllers\Citizen\CitizenController::class, 'services'])->name('services');
@@ -116,4 +116,6 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
 
         Route::get('/history', [\App\Http\Controllers\Citizen\CitizenController::class, 'history'])->name('history');
     });
+
+    
 });

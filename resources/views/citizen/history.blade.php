@@ -22,15 +22,27 @@
                     <p style="color:#6b7280;">Status: {{ ucfirst(str_replace('_', ' ', $request->status)) }}</p>
                 </div>
 
-                <div style="display:flex; flex-direction:column; gap:10px;">
-                    <button class="btn-secondary" type="button">
-                        Download Receipt
-                    </button>
+               <div style="display:flex; flex-direction:column; gap:10px;">
 
-                    <button class="btn-secondary" type="button">
-                        Download Document
-                    </button>
-                </div>
+    <a href="{{ route('citizen.history.receipt', $request) }}"
+       class="btn-secondary"
+       style="text-decoration:none; text-align:center;">
+        Download Receipt
+    </a>
+
+    <a href="{{ route('citizen.history.document', $request) }}"
+       class="btn-secondary"
+       style="text-decoration:none; text-align:center;">
+        Download Document
+    </a>
+
+    <a href="{{ route('citizen.feedback.create', $request) }}"
+       class="btn-secondary"
+       style="text-decoration:none; text-align:center;">
+        Leave Feedback
+    </a>
+
+</div>
             </div>
         </div>
     @empty

@@ -42,8 +42,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'date_of_birth' => 'date',
-            'phone' => 'encrypted',
-            'id_document_path' => 'encrypted',
+            'phone' => 'string',
+            'id_document_path' => 'string',
             'two_factor_verified_at' => 'datetime',
         ];
     }

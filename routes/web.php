@@ -103,6 +103,18 @@ Route::middleware(['auth', '2fa', 'citizen.id'])->group(function (): void {
         Route::get('/requests', [\App\Http\Controllers\Citizen\CitizenController::class, 'requests'])->name('requests');
         Route::get('/requests/create/{service}', [\App\Http\Controllers\Citizen\CitizenController::class, 'createRequest'])->name('requests.create');
         Route::post('/requests/store', [\App\Http\Controllers\Citizen\CitizenController::class, 'storeRequest'])->name('requests.store');
+        Route::get('/requests/{serviceRequest}/qr', [\App\Http\Controllers\Citizen\CitizenController::class, 'requestQr'])
+        ->name('requests.qr');
+        Route::get('/requests/{serviceRequest}/feedback', [\App\Http\Controllers\Citizen\CitizenController::class, 'createFeedback'])
+        ->name('feedback.create');
+
+        Route::post('/requests/{serviceRequest}/feedback', [\App\Http\Controllers\Citizen\CitizenController::class, 'storeFeedback'])
+        ->name('feedback.store');
+        Route::get('/requests/{serviceRequest}/chat', [\App\Http\Controllers\Citizen\CitizenController::class, 'chat'])
+    ->name('chat');
+
+Route::post('/requests/{serviceRequest}/chat', [\App\Http\Controllers\Citizen\CitizenController::class, 'sendMessage'])
+    ->name('chat.send');
 
         Route::get('/payments', [\App\Http\Controllers\Citizen\CitizenController::class, 'payments'])->name('payments');
         Route::get('/payments/{serviceRequest}', [\App\Http\Controllers\Citizen\CitizenController::class, 'paymentPage'])->name('payments.show');
@@ -115,6 +127,11 @@ Route::middleware(['auth', '2fa', 'citizen.id'])->group(function (): void {
         Route::post('/appointments/store', [\App\Http\Controllers\Citizen\CitizenController::class, 'storeAppointment'])->name('appointments.store');
 
         Route::get('/history', [\App\Http\Controllers\Citizen\CitizenController::class, 'history'])->name('history');
+        Route::get('/history/{serviceRequest}/receipt', [\App\Http\Controllers\Citizen\CitizenController::class, 'downloadReceipt'])
+    ->name('history.receipt');
+
+Route::get('/history/{serviceRequest}/document', [\App\Http\Controllers\Citizen\CitizenController::class, 'downloadDocument'])
+    ->name('history.document');
     });
 
     

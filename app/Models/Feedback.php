@@ -30,4 +30,9 @@ class Feedback extends Model
     {
         return $this->belongsTo(ServiceRequest::class);
     }
+    public function service(): BelongsTo
+{
+    return $this->belongsTo(Service::class);
+}
+}
 }

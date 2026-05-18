@@ -45,21 +45,35 @@
                     </p>
                 </div>
 
-                <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-                    <span style="padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600; background:#fef3c7; color:#92400e;">
-                        {{ ucfirst(str_replace('_', ' ', $request->status)) }}
-                    </span>
+               <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
 
-                    @if($request->payments->where('status', 'paid')->count() > 0)
-                        <span style="background:#dcfce7; color:#166534; padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600;">
-                            Paid
-                        </span>
-                    @else
-                        <span style="background:#fee2e2; color:#991b1b; padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600;">
-                            Unpaid
-                        </span>
-                    @endif
-                </div>
+    <span style="padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600; background:#fef3c7; color:#92400e;">
+        {{ ucfirst(str_replace('_', ' ', $request->status)) }}
+    </span>
+
+    @if($request->payments->where('status', 'paid')->count() > 0)
+        <span style="background:#dcfce7; color:#166534; padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600;">
+            Paid
+        </span>
+    @else
+        <span style="background:#fee2e2; color:#991b1b; padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600;">
+            Unpaid
+        </span>
+    @endif
+
+    <a href="{{ route('citizen.requests.qr', $request) }}"
+   class="btn-secondary"
+   style="text-decoration:none; text-align:center; margin-top:8px;">
+    QR Code
+</a>
+
+<a href="{{ route('citizen.chat', $request) }}"
+   class="btn-secondary"
+   style="text-decoration:none; text-align:center; margin-top:8px;">
+    Chat
+</a>
+
+</div>
             </div>
 
             <div style="margin-top:20px;">

@@ -85,4 +85,58 @@
         </a>
     </div>
 </div>
+<div class="card" style="margin-top:24px;">
+    <h2 style="font-size:24px; font-weight:700; margin-bottom:10px;">
+        Citizen Reviews
+    </h2>
+
+    @if($averageRating)
+        <p style="color:#6b7280; margin-bottom:20px;">
+            Average Rating:
+            <strong>{{ $averageRating }}/5</strong>
+        </p>
+    @else
+        <p style="color:#6b7280; margin-bottom:20px;">
+            No ratings yet.
+        </p>
+    @endif
+
+    @forelse($feedbacks as $feedback)
+        <div style="border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; gap:12px;">
+                <div>
+                    <p style="font-weight:700; margin-bottom:4px;">
+                        {{ $feedback->citizen->name ?? 'Citizen' }}
+                    </p>
+
+                    <p style="color:#f59e0b; margin-bottom:8px;">
+                        {{ str_repeat('★', $feedback->rating) }}
+                        {{ str_repeat('☆', 5 - $feedback->rating) }}
+                    </p>
+                </div>
+
+                <p style="color:#6b7280; font-size:14px;">
+                    {{ optional($feedback->created_at)->format('d M Y') }}
+                </p>
+            </div>
+
+            @if($feedback->comment)
+                <p style="color:#374151; line-height:1.6;">
+                    {{ $feedback->comment }}
+                </p>
+            @endif
+
+            @if($feedback->public_reply)
+                <div style="background:#f9fafb; border-left:4px solid #2563eb; padding:12px; margin-top:12px;">
+                    <p style="font-weight:700; margin-bottom:4px;">Office Reply</p>
+                    <p style="color:#374151;">{{ $feedback->public_reply }}</p>
+                </div>
+            @endif
+        </div>
+    @empty
+        <p style="color:#6b7280;">
+            No citizen reviews for this service yet.
+        </p>
+    @endforelse
+</div>
 @endsection

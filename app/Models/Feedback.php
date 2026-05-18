@@ -33,4 +33,8 @@ class Feedback extends Model
     {
         return $this->belongsTo(Office::class);
     }
+    public function service(): BelongsTo
+{
+    return $this->belongsTo(Service::class);
+}
 }

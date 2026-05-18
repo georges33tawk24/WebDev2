@@ -43,6 +43,7 @@
             <p class="field-hint-block">Detected from your ID:</p>
             <p><strong>Name:</strong> <span id="register-preview-name">—</span></p>
             <p><strong>Date of birth:</strong> <span id="register-preview-dob">—</span></p>
+            <p id="register-id-ocr-hint" class="field-hint-block" hidden></p>
         </div>
 
         <label class="field-label" for="password">Password</label>
@@ -102,14 +103,23 @@
                     })
                         .then(function (r) { return r.json(); })
                         .then(function (json) {
-                            if (!json.parsed) return;
                             preview.hidden = false;
+                            var hint = document.getElementById('register-id-ocr-hint');
                             var nameInput = document.getElementById('name');
                             if (json.name && nameInput && !nameInput.value) {
                                 nameInput.value = json.name;
                             }
                             document.getElementById('register-preview-name').textContent = json.name || '—';
                             document.getElementById('register-preview-dob').textContent = json.date_of_birth || '—';
+                            if (hint) {
+                                if (json.message) {
+                                    hint.textContent = json.message;
+                                    hint.hidden = false;
+                                } else {
+                                    hint.textContent = '';
+                                    hint.hidden = true;
+                                }
+                            }
                         })
                         .catch(function () {});
                 });

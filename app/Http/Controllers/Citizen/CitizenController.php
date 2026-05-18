@@ -311,7 +311,7 @@ public function maps()
     ->whereNotNull('longitude')
     ->get();
 
-    $googleMapsApiKey = env('GOOGLE_MAPS_API_KEY');
+    $googleMapsApiKey = config('services.google.maps_key');
 
     return view('citizen.maps', compact('offices', 'googleMapsApiKey'));
 }

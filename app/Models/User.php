@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'name',
@@ -69,6 +70,43 @@ class User extends Authenticatable
 
     public function needsIdDocument(): bool
     {
-        return $this->isCitizen() && blank($this->id_document_path);
+        if (! $this->isCitizen()) {
+            return false;
+        }
+
+        $path = $this->id_document_path;
+
+        if (blank($path) || $this->isPlaceholderIdPath($path)) {
+            return true;
+        }
+
+        return ! Storage::disk('public')->exists($path);
+    }
+
+    public function hasValidIdDocument(): bool
+    {
+        return $this->isCitizen() && ! $this->needsIdDocument();
+    }
+
+    public function purgeInvalidIdDocumentPath(): void
+    {
+        if (! $this->isCitizen()) {
+            return;
+        }
+
+        $path = $this->id_document_path;
+
+        if (blank($path)) {
+            return;
+        }
+
+        if ($this->isPlaceholderIdPath($path) || ! Storage::disk('public')->exists($path)) {
+            $this->forceFill(['id_document_path' => null])->save();
+        }
+    }
+
+    private function isPlaceholderIdPath(string $path): bool
+    {
+        return str_contains($path, 'seed-placeholder');
     }
 }

@@ -41,7 +41,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/account-protected', [AuthController::class, 'showAccountProtected'])->name('account.protected');
 });
 
-Route::middleware(['auth', '2fa'])->group(function (): void {
+Route::middleware(['auth', '2fa', 'citizen.id'])->group(function (): void {
     Route::post('/api/id-document/parse', [IdDocumentController::class, 'parse'])
         ->middleware('throttle:30,1')
         ->name('api.id-document.parse');
@@ -58,7 +58,7 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
         ->middleware('role:office_staff')
         ->name('dashboard.staff');
     Route::get('/dashboard/citizen', fn () => redirect()->route('citizen.dashboard'))
-        ->middleware(['role:citizen', 'citizen.id'])
+        ->middleware('role:citizen')
         ->name('dashboard.citizen');
 
     // Admin Routes
@@ -87,10 +87,14 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
         Route::get('/requests/{serviceRequest}', [\App\Http\Controllers\Staff\RequestController::class, 'show'])->name('requests.show');
         Route::patch('/requests/{serviceRequest}/status', [\App\Http\Controllers\Staff\RequestController::class, 'updateStatus'])->name('requests.updateStatus');
         Route::post('/requests/{serviceRequest}/document', [\App\Http\Controllers\Staff\RequestController::class, 'uploadDocument'])->name('requests.uploadDocument');
+        Route::get('/office', [\App\Http\Controllers\Staff\OfficeProfileController::class, 'edit'])->name('office.edit');
+        Route::put('/office', [\App\Http\Controllers\Staff\OfficeProfileController::class, 'update'])->name('office.update');
+        Route::get('/feedback', [\App\Http\Controllers\Staff\FeedbackController::class, 'index'])->name('feedback.index');
+        Route::post('/feedback/{feedback}/reply', [\App\Http\Controllers\Staff\FeedbackController::class, 'reply'])->name('feedback.reply');
     });
     //Route::middleware(['citizen.id','role:citizen'])->prefix('citizen')->name('citizen.')->group(function () {
 // Citizen portal (Chris module)
- Route::middleware(['role:citizen', 'citizen.id'])->prefix('citizen')->name('citizen.')->group(function () {
+ Route::middleware('role:citizen')->prefix('citizen')->name('citizen.')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Citizen\CitizenController::class, 'dashboard'])->name('dashboard');
 
         Route::get('/services', [\App\Http\Controllers\Citizen\CitizenController::class, 'services'])->name('services');

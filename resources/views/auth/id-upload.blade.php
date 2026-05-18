@@ -1,6 +1,12 @@
 <x-layouts.auth-flow title="ID Upload — WebDev2">
-    <h1 class="twofa-title">Upload your ID</h1>
-    <p class="twofa-sub">We need a photo of your ID to verify your citizen account. Information will be read automatically when OCR is configured.</p>
+    <h1 class="twofa-title">{{ ($required ?? true) ? 'Upload your ID' : 'Update your ID' }}</h1>
+    <p class="twofa-sub">
+        @if ($required ?? true)
+            We need a photo of your ID to verify your citizen account. You must upload an ID before using the portal.
+        @else
+            Upload a new ID document to replace the one on file. Information will be read automatically when OCR is configured.
+        @endif
+    </p>
 
     @if (session('status'))
         <p class="twofa-inline-success">{{ session('status') }}</p>
@@ -23,8 +29,14 @@
             <p><strong>Date of birth:</strong> <span id="preview-dob">—</span></p>
         </div>
 
-        <button type="submit" class="btn-primary btn-block">Upload and continue</button>
+        <button type="submit" class="btn-primary btn-block">{{ ($required ?? true) ? 'Upload and continue' : 'Save new ID' }}</button>
     </form>
+
+    @if (! ($required ?? true))
+        <p style="margin-top: 16px; text-align: center;">
+            <a href="{{ route('citizen.dashboard') }}" class="auth-link">← Back to dashboard</a>
+        </p>
+    @endif
 
     @push('scripts')
         <script>

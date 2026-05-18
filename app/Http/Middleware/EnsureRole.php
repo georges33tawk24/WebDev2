@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\AuthController;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,12 +14,7 @@ class EnsureRole
         $user = $request->user();
 
         if (! $user || $user->role?->slug !== $role) {
-            $targetRoute = match ($user?->role?->slug) {
-                'admin' => 'dashboard.admin',
-                'office_staff' => 'dashboard.staff',
-                'citizen' => 'citizen.dashboard',
-                default => 'login',
-            };
+            $targetRoute = AuthController::homeRouteFor($user);
 
             if ($request->routeIs($targetRoute)) {
                 abort(403, 'Your account does not have permission to access this area.');

@@ -61,6 +61,9 @@
             "time": "2022-12-07T17:46:57+00:00"
         },
         {
+    "content-hash": "832d4efdb6c2eda31afb4bbca8bb7b5b",
+    "packages": [
+        {
             "name": "barryvdh/laravel-dompdf",
             "version": "v3.1.2",
             "source": {

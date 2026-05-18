@@ -18,7 +18,7 @@
         @method('PUT')
 
         <div class="form-group">
-            <label class="form-label">Office *</label>
+            <label class="form-label">Office </label>
             <select name="office_id" class="form-control">
                 <option value="">Select an office...</option>
                 @foreach($offices as $office)
@@ -44,7 +44,7 @@
         </div>
 
         <div class="form-group">
-            <label class="form-label">Service Name *</label>
+            <label class="form-label">Service Name </label>
             <input type="text" name="name" class="form-control" value="{{ old('name', $service->name) }}">
             @error('name') <div class="form-error">{{ $message }}</div> @enderror
         </div>
@@ -57,7 +57,7 @@
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
             <div class="form-group">
-                <label class="form-label">Price ($) *</label>
+                <label class="form-label">Price ($) </label>
                 <input type="number" name="price" class="form-control" value="{{ old('price', $service->price) }}" min="0" step="0.01">
                 @error('price') <div class="form-error">{{ $message }}</div> @enderror
             </div>

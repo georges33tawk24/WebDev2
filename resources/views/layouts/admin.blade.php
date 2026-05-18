@@ -430,6 +430,77 @@
         }
     </style>
 </head>
+
+<script type="module">
+    function showRealtimeToast(title, message) {
+
+        const toast = document.createElement('div');
+
+        toast.style.position = 'fixed';
+        toast.style.top = '24px';
+        toast.style.right = '24px';
+        toast.style.width = '340px';
+        toast.style.background = '#ffffff';
+        toast.style.border = '1px solid #dbeafe';
+        toast.style.borderLeft = '5px solid #2563eb';
+        toast.style.borderRadius = '16px';
+        toast.style.padding = '18px';
+        toast.style.boxShadow = '0 15px 40px rgba(0,0,0,0.12)';
+        toast.style.zIndex = '99999';
+        toast.style.animation = 'slideIn 0.25s ease';
+
+        toast.innerHTML = `
+            <div style="font-weight:700; margin-bottom:8px; color:#111827;">
+                ${title}
+            </div>
+
+            <div style="font-size:14px; color:#4b5563; line-height:1.6;">
+                ${message}
+            </div>
+        `;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, 6000);
+    }
+
+    if (window.Echo) {
+
+        @if(auth()->user()->role?->slug === 'office_staff')
+
+            window.Echo.channel('office.{{ auth()->user()->office_id }}')
+                .listen('.request.submitted', (event) => {
+
+                    showRealtimeToast(
+                        'New Service Request',
+                        `${event.citizen_name} submitted a request for ${event.service_name}`
+                    );
+
+                    console.log('Realtime request received:', event);
+                });
+
+        @endif
+
+    }
+
+</script>
+
+<style>
+@keyframes slideIn {
+    from {
+        transform: translateX(120%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+</style>
+
 <body>
 
 {{-- Sidebar --}}
@@ -541,7 +612,59 @@
 {{-- Navbar --}}
 <nav class="navbar">
     <span class="navbar-title">@yield('page-title', 'Dashboard')</span>
+
+    @php
+        $unreadNotifications = \App\Models\UserNotification::where('user_id', auth()->id())
+            ->where('is_read', false)
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $unreadCount = \App\Models\UserNotification::where('user_id', auth()->id())
+            ->where('is_read', false)
+            ->count();
+    @endphp
+
     <div class="navbar-right">
+        <div style="position:relative;">
+            <a href="{{ route('notifications.index') }}"
+               style="
+                    width:40px;
+                    height:40px;
+                    border-radius:50%;
+                    background:rgba(255,255,255,0.16);
+                    color:white;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    text-decoration:none;
+                    position:relative;
+               ">
+                🔔
+
+                @if($unreadCount > 0)
+                    <span style="
+                        position:absolute;
+                        top:-5px;
+                        right:-5px;
+                        background:#ef4444;
+                        color:white;
+                        min-width:20px;
+                        height:20px;
+                        border-radius:999px;
+                        font-size:11px;
+                        font-weight:700;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        padding:0 6px;
+                    ">
+                        {{ $unreadCount }}
+                    </span>
+                @endif
+            </a>
+        </div>
+
         <div class="navbar-user">
             <div class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div>
             {{ auth()->user()->name }}
@@ -569,6 +692,61 @@
 
     @yield('content')
 </main>
+
+<script type="module">
+    function showRealtimeToast(title, message) {
+        const toast = document.createElement('div');
+
+        toast.style.position = 'fixed';
+        toast.style.top = '90px';
+        toast.style.right = '24px';
+        toast.style.width = '360px';
+        toast.style.background = '#ffffff';
+        toast.style.border = '1px solid #dbeafe';
+        toast.style.borderLeft = '5px solid #2563eb';
+        toast.style.borderRadius = '16px';
+        toast.style.padding = '18px';
+        toast.style.boxShadow = '0 15px 40px rgba(0,0,0,0.14)';
+        toast.style.zIndex = '99999';
+
+        toast.innerHTML = `
+            <div style="font-weight:700; margin-bottom:8px; color:#111827;">
+                ${title}
+            </div>
+            <div style="font-size:14px; color:#4b5563; line-height:1.6;">
+                ${message}
+            </div>
+        `;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, 6000);
+    }
+
+    if (window.Echo) {
+        @if(auth()->user()->role?->slug === 'office_staff')
+            window.Echo.channel('office.{{ auth()->user()->office_id }}')
+                .listen('.request.submitted', (event) => {
+                    showRealtimeToast(
+                        'New Service Request',
+                        `${event.citizen_name} submitted a request for ${event.service_name}`
+                    );
+                });
+        @endif
+
+        @if(auth()->user()->role?->slug === 'citizen')
+            window.Echo.channel('citizen.{{ auth()->id() }}')
+                .listen('.request.status.updated', (event) => {
+                    showRealtimeToast(
+                        'Request Status Updated',
+                        event.message
+                    );
+                });
+        @endif
+    }
+</script>
 
 </body>
 </html>

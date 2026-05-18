@@ -109,4 +109,8 @@ class User extends Authenticatable
     {
         return str_contains($path, 'seed-placeholder');
     }
+    public function notifications()
+{
+    return $this->hasMany(UserNotification::class);
+}
 }

@@ -39,6 +39,14 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/2fa', [AuthController::class, 'verifyTwoFactor'])->name('2fa.verify.submit');
     Route::post('/2fa/resend', [AuthController::class, 'resendTwoFactor'])->name('2fa.resend');
     Route::get('/account-protected', [AuthController::class, 'showAccountProtected'])->name('account.protected');
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])
+    ->name('notifications.index');
+
+Route::post('/notifications/{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])
+    ->name('notifications.read');
+
+Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])
+    ->name('notifications.readAll');
 });
 
 Route::middleware(['auth', '2fa', 'citizen.id'])->group(function (): void {
@@ -91,6 +99,11 @@ Route::middleware(['auth', '2fa', 'citizen.id'])->group(function (): void {
         Route::put('/office', [\App\Http\Controllers\Staff\OfficeProfileController::class, 'update'])->name('office.update');
         Route::get('/feedback', [\App\Http\Controllers\Staff\FeedbackController::class, 'index'])->name('feedback.index');
         Route::post('/feedback/{feedback}/reply', [\App\Http\Controllers\Staff\FeedbackController::class, 'reply'])->name('feedback.reply');
+        Route::get('/requests/{serviceRequest}/chat', [\App\Http\Controllers\Staff\RequestController::class, 'chat'])
+    ->name('requests.chat');
+
+Route::post('/requests/{serviceRequest}/chat', [\App\Http\Controllers\Staff\RequestController::class, 'sendMessage'])
+    ->name('requests.chat.send');
     });
     //Route::middleware(['citizen.id','role:citizen'])->prefix('citizen')->name('citizen.')->group(function () {
 // Citizen portal (Chris module)
@@ -132,7 +145,18 @@ Route::post('/requests/{serviceRequest}/chat', [\App\Http\Controllers\Citizen\Ci
 
 Route::get('/history/{serviceRequest}/document', [\App\Http\Controllers\Citizen\CitizenController::class, 'downloadDocument'])
     ->name('history.document');
+    Route::get('/crypto-payments/{serviceRequest}', [\App\Http\Controllers\Citizen\CitizenController::class, 'cryptoPaymentPage'])
+    ->name('crypto.payments.show');
+
+Route::post('/crypto-payments/{serviceRequest}', [\App\Http\Controllers\Citizen\CitizenController::class, 'processCryptoPayment'])
+    ->name('crypto.payments.process');
+
+Route::post('/crypto-payments/{payment}/confirm', [\App\Http\Controllers\Citizen\CitizenController::class, 'confirmCryptoPayment'])
+    ->name('crypto.payments.confirm');
     });
 
     
 });
+
+Route::get('/track/{token}', [\App\Http\Controllers\PublicTrackingController::class, 'show'])
+    ->name('public.track');

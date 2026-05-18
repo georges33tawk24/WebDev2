@@ -10,6 +10,11 @@
         <div class="page-subtitle">Reference: {{ $serviceRequest->reference_number }}</div>
     </div>
     <a href="{{ route('staff.requests.index') }}" class="btn-secondary"> Back to Requests</a>
+    <a href="{{ route('staff.requests.chat', $serviceRequest) }}"
+   class="btn-primary"
+   style="text-decoration:none;">
+    Open Chat
+</a>
 </div>
 
 <div style="display:grid; grid-template-columns:2fr 1fr; gap:24px;">

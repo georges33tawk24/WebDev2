@@ -45,4 +45,29 @@ class Appointment extends Model
     {
         return $this->belongsTo(User::class, 'staff_id');
     }
+
+    public function scopeUpcoming($query)
+    {
+        return $query->where('starts_at', '>=', now());
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereIn('status', ['scheduled', 'confirmed']);
+    }
+
+    public static function hasConflict(int $officeId, string $startsAt, string $endsAt): bool
+    {
+        return self::where('office_id', $officeId)
+            ->whereIn('status', ['scheduled', 'confirmed'])
+            ->where(function ($query) use ($startsAt, $endsAt) {
+                $query->whereBetween('starts_at', [$startsAt, $endsAt])
+                    ->orWhereBetween('ends_at', [$startsAt, $endsAt])
+                    ->orWhere(function ($innerQuery) use ($startsAt, $endsAt) {
+                        $innerQuery->where('starts_at', '<=', $startsAt)
+                            ->where('ends_at', '>=', $endsAt);
+                    });
+            })
+            ->exists();
+    }
 }

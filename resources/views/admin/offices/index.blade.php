@@ -10,7 +10,7 @@
         <div class="page-subtitle">Manage all government offices on the platform</div>
     </div>
     <a href="{{ route('admin.offices.create') }}" class="btn-primary">
-        + Add New Office
+         Add New Office
     </a>
 </div>
 

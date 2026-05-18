@@ -3,12 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Feedback extends Model
 {
-    protected $table = 'feedback';
-
     protected $fillable = [
         'service_request_id',
         'citizen_id',
@@ -19,18 +16,18 @@ class Feedback extends Model
         'private_reply',
     ];
 
-    public function serviceRequest(): BelongsTo
-    {
-        return $this->belongsTo(ServiceRequest::class);
-    }
-
-    public function citizen(): BelongsTo
+    public function citizen()
     {
         return $this->belongsTo(User::class, 'citizen_id');
     }
 
-    public function office(): BelongsTo
+    public function office()
     {
         return $this->belongsTo(Office::class);
+    }
+
+    public function serviceRequest()
+    {
+        return $this->belongsTo(ServiceRequest::class);
     }
 }

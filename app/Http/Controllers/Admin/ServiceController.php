@@ -72,7 +72,7 @@ class ServiceController extends Controller
             ? array_filter(array_map('trim', explode(',', $request->required_documents)))
             : [];
 
-        $validated['is_active'] = $request->boolean('is_active', true);
+        $validated['is_active'] = $request->boolean('is_active', false);
 
         $service->update($validated);
 

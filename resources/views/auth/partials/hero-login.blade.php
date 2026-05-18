@@ -18,6 +18,6 @@
             fetchpriority="high"
         >
     </div>
-    <p class="hero-headline">Your security, our priority.</p>
-    <p class="hero-text">We use encryption and two-factor authentication to help keep your account safe.</p>
+    <p class="hero-headline">{{ __('ui.auth.hero_security_title') }}</p>
+    <p class="hero-text">{{ __('ui.auth.hero_security_text') }}</p>
 </div>

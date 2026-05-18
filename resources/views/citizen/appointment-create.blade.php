@@ -1,12 +1,13 @@
 @extends('layouts.admin')
 
-@section('title', 'Confirm Appointment')
-@section('page-title', 'Confirm Appointment')
+@section('title', __('ui.citizen.confirm_appointment'))
+@section('page-title', __('ui.citizen.confirm_appointment'))
 
 @section('content')
-<div class="card" style="max-width:700px; margin:auto;">
-    <h1 style="font-size:28px; font-weight:700; margin-bottom:8px;">Confirm Appointment</h1>
-    <p style="color:#6b7280; margin-bottom:24px;">Office: <strong>{{ $office->name }}</strong></p>
+<x-form-page>
+<div class="card">
+    <h1 style="font-size:28px; font-weight:700; margin-bottom:8px;">{{ __('ui.citizen.confirm_appointment') }}</h1>
+    <p style="color:#6b7280; margin-bottom:24px;">{{ __('ui.citizen.office_colon') }} <strong>{{ $office->localized('name') }}</strong></p>
 
     <form method="POST" action="{{ route('citizen.appointments.store') }}">
         @csrf
@@ -14,7 +15,7 @@
         <input type="hidden" name="office_id" value="{{ $office->id }}">
 
         <div style="margin-bottom:20px;">
-            <label style="font-weight:600; display:block; margin-bottom:8px;">Appointment Date</label>
+            <label style="font-weight:600; display:block; margin-bottom:8px;">{{ __('ui.citizen.appointment_date') }}</label>
             <input type="date"
                    name="appointment_date"
                    required
@@ -22,39 +23,37 @@
         </div>
 
         <div style="margin-bottom:20px;">
-            <label style="font-weight:600; display:block; margin-bottom:8px;">Available Time Slot</label>
+            <label style="font-weight:600; display:block; margin-bottom:8px;">{{ __('ui.citizen.available_time_slot') }}</label>
             <select name="appointment_time"
                     required
                     style="width:100%; border:1px solid #d1d5db; border-radius:10px; padding:12px;">
-                <option value="">Select time</option>
-                <option value="09:00">09:00 AM</option>
-                <option value="10:00">10:00 AM</option>
-                <option value="11:00">11:00 AM</option>
-                <option value="12:00">12:00 PM</option>
-                <option value="13:00">01:00 PM</option>
-                <option value="14:00">02:00 PM</option>
+                <option value="">{{ __('ui.citizen.select_time') }}</option>
+                @foreach (appointment_time_slots() as $slot)
+                    <option value="{{ $slot }}" @selected(old('appointment_time') === $slot)>{{ localized_time_option($slot) }}</option>
+                @endforeach
             </select>
         </div>
 
         <div style="margin-bottom:24px;">
-            <label style="font-weight:600; display:block; margin-bottom:8px;">Reason / Notes</label>
+            <label style="font-weight:600; display:block; margin-bottom:8px;">{{ __('ui.citizen.reason_notes') }}</label>
             <textarea name="notes"
                       rows="4"
-                      placeholder="Optional notes..."
+                      placeholder="{{ __('ui.citizen.additional_notes') }}"
                       style="width:100%; border:1px solid #d1d5db; border-radius:10px; padding:12px;"></textarea>
         </div>
 
-        <div style="display:flex; gap:12px;">
+        <div class="form-actions">
             <a href="{{ route('citizen.appointments') }}"
                class="btn-secondary"
                style="text-decoration:none;">
-                Back
+                {{ __('ui.back') }}
             </a>
 
             <button type="submit" class="btn-primary">
-                Confirm Booking
+                {{ __('ui.citizen.confirm_booking') }}
             </button>
         </div>
     </form>
 </div>
+</x-form-page>
 @endsection

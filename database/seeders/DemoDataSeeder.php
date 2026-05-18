@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Appointment;
 use App\Models\Category;
+use App\Models\Document;
 use App\Models\Feedback;
 use App\Models\Message;
 use App\Models\Notification;
@@ -15,6 +16,8 @@ use App\Models\Role;
 use App\Models\Service;
 use App\Models\ServiceRequest;
 use App\Models\User;
+use App\Services\PdfGenerationService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
@@ -23,9 +26,13 @@ use Illuminate\Support\Str;
 
 class DemoDataSeeder extends Seeder
 {
-    private const DEMO_TAG = 'demo-seed-v1';
+    private const DEMO_TAG = 'demo-seed-v2';
 
     private const PASSWORD = 'password123';
+
+    private const TARGET_DEMO_REQUESTS = 160;
+
+    private const MIN_REQUESTS_PER_OFFICE = 14;
 
     /** @var array<string, Office> */
     private array $offices = [];
@@ -44,9 +51,14 @@ class DemoDataSeeder extends Seeder
 
     private string $demoIdPath = 'ids/seed-demo-verified.png';
 
+    private string $demoCitizenUploadPdfPath = 'documents/demo-citizen-upload.pdf';
+
     public function run(): void
     {
         $this->ensureDemoIdFile();
+        $this->ensureDemoCitizenUploadPdf();
+        $this->repairMislabeledCitizenDocuments();
+        $this->backfillGeneratedPdfsForDemoRequests();
 
         $adminRole = Role::query()->firstOrCreate(['slug' => 'admin'], ['name' => 'Admin']);
         $staffRole = Role::query()->firstOrCreate(['slug' => 'office_staff'], ['name' => 'Office Staff']);
@@ -59,13 +71,15 @@ class DemoDataSeeder extends Seeder
         $this->seedServices();
         $this->seedCitizens($citizenRole);
 
-        if (ServiceRequest::query()->where('notes', self::DEMO_TAG)->exists()) {
-            $this->command?->info('Demo requests already present — skipping bulk request generation.');
+        $existingDemoRequests = ServiceRequest::query()
+            ->where('notes', 'like', 'demo-seed%')
+            ->count();
 
-            return;
+        if ($existingDemoRequests < self::TARGET_DEMO_REQUESTS) {
+            $this->seedServiceRequestsAndRelated(self::TARGET_DEMO_REQUESTS - $existingDemoRequests);
         }
 
-        $this->seedServiceRequestsAndRelated();
+        $this->ensureRichDemoDataPerOffice();
         $this->command?->info('Lebanon demo data seeded successfully.');
     }
 
@@ -106,6 +120,9 @@ class DemoDataSeeder extends Seeder
 
     private function seedOffices(): void
     {
+        $arCatalog = require database_path('data/localized_catalog_ar.php');
+        $officeAr = $arCatalog['offices'];
+
         $definitions = [
             'beirut' => [
                 'name' => 'Beirut Municipal Council — Sanayeh',
@@ -184,7 +201,7 @@ class DemoDataSeeder extends Seeder
         foreach ($definitions as $key => $data) {
             $this->offices[$key] = Office::query()->updateOrCreate(
                 ['name' => $data['name']],
-                array_merge($data, [
+                array_merge($data, $officeAr[$key] ?? [], [
                     'working_hours' => [
                         'days' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
                         'hours' => '8:00–15:00',
@@ -225,6 +242,9 @@ class DemoDataSeeder extends Seeder
 
     private function seedCategories(): void
     {
+        $arCatalog = require database_path('data/localized_catalog_ar.php');
+        $categoryAr = $arCatalog['categories'];
+
         $definitions = [
             'civil' => ['name' => 'Civil Registration & Extracts', 'description' => 'Birth, family, and residence records.'],
             'licenses' => ['name' => 'Municipal Licenses & Permits', 'description' => 'Shop signage, outdoor seating, events.'],
@@ -239,13 +259,21 @@ class DemoDataSeeder extends Seeder
         foreach ($definitions as $key => $data) {
             $this->categories[$key] = Category::query()->updateOrCreate(
                 ['name' => $data['name']],
-                ['description' => $data['description']]
+                array_merge(
+                    ['description' => $data['description']],
+                    $categoryAr[$key] ?? []
+                )
             );
         }
     }
 
     private function seedServices(): void
     {
+        $arCatalog = require database_path('data/localized_catalog_ar.php');
+        $serviceNamesAr = $arCatalog['service_names'];
+        $descriptionArTemplate = $arCatalog['service_description_ar'];
+        $requiredDocumentsAr = $arCatalog['required_documents_ar'];
+
         $catalog = [
             ['office' => 'beirut', 'category' => 'civil', 'name' => 'Extract of Residence (إخراج قيد)', 'price' => 15.00, 'minutes' => 20],
             ['office' => 'beirut', 'category' => 'licenses', 'name' => 'Shop Signage Permit', 'price' => 120.00, 'minutes' => 45],
@@ -273,6 +301,7 @@ class DemoDataSeeder extends Seeder
         ];
 
         foreach ($catalog as $item) {
+            $municipality = $this->offices[$item['office']]->municipality ?? '';
             $service = Service::query()->updateOrCreate(
                 [
                     'office_id' => $this->offices[$item['office']]->id,
@@ -280,10 +309,17 @@ class DemoDataSeeder extends Seeder
                 ],
                 [
                     'category_id' => $this->categories[$item['category']]->id,
-                    'description' => 'Municipal e-service for residents of '.$this->offices[$item['office']]->municipality.'.',
+                    'name_ar' => $serviceNamesAr[$item['name']] ?? null,
+                    'description' => 'Municipal e-service for residents of '.$municipality.'.',
+                    'description_ar' => str_replace(
+                        ':municipality',
+                        $this->offices[$item['office']]->municipality_ar ?? $municipality,
+                        $descriptionArTemplate
+                    ),
                     'price' => $item['price'],
                     'estimated_duration_minutes' => $item['minutes'],
                     'required_documents' => ['National ID or passport', 'Proof of address', 'Supporting forms if applicable'],
+                    'required_documents_ar' => $requiredDocumentsAr,
                     'is_active' => true,
                 ]
             );
@@ -331,7 +367,7 @@ class DemoDataSeeder extends Seeder
         }
     }
 
-    private function seedServiceRequestsAndRelated(): void
+    private function seedServiceRequestsAndRelated(int $count = self::TARGET_DEMO_REQUESTS): void
     {
         $statuses = ['pending', 'in_review', 'missing_documents', 'approved', 'rejected', 'completed'];
         $statusWeights = [
@@ -340,18 +376,18 @@ class DemoDataSeeder extends Seeder
             'missing_documents' => 8,
             'approved' => 10,
             'rejected' => 6,
-            'completed' => 20,
+            'completed' => 24,
         ];
 
         $weightedStatuses = [];
-        foreach ($statusWeights as $status => $count) {
-            $weightedStatuses = array_merge($weightedStatuses, array_fill(0, $count, $status));
+        foreach ($statusWeights as $status => $weight) {
+            $weightedStatuses = array_merge($weightedStatuses, array_fill(0, $weight, $status));
         }
 
         $staffByOffice = collect($this->staff)->groupBy('office_id');
-        $referenceSeeds = 1;
+        $referenceSeeds = ServiceRequest::query()->count() + 1;
 
-        for ($i = 0; $i < 70; $i++) {
+        for ($i = 0; $i < $count; $i++) {
             $service = $this->services[array_rand($this->services)];
             $citizen = $this->citizens[array_rand($this->citizens)];
             $status = $weightedStatuses[array_rand($weightedStatuses)];
@@ -377,40 +413,253 @@ class DemoDataSeeder extends Seeder
 
             if (in_array($status, ['approved', 'completed'], true)) {
                 $this->seedPayment($request, $citizen, $service, $submittedAt);
+                $this->seedGeneratedPdfs($request);
             }
 
-            if (in_array($status, ['in_review', 'approved', 'completed'], true) && random_int(0, 100) < 45) {
+            if (in_array($status, ['in_review', 'approved', 'completed'], true) && random_int(0, 100) < 65) {
                 $this->seedAppointment($request, $citizen, $officeStaff, $submittedAt);
             }
 
-            if ($status === 'completed' && random_int(0, 100) < 55) {
+            if ($status === 'completed' && random_int(0, 100) < 85) {
                 $this->seedFeedback($request, $citizen, $service);
             }
 
-            if (in_array($status, ['in_review', 'missing_documents'], true) && random_int(0, 100) < 35) {
-                $this->seedMessage($request, $citizen, $officeStaff);
+            if (in_array($status, ['in_review', 'missing_documents', 'approved', 'completed'], true) && random_int(0, 100) < 55) {
+                $this->seedMessageThread($request, $citizen, $officeStaff);
+            }
+
+            if (random_int(0, 100) < 40) {
+                $this->seedCitizenDocument($request, $citizen);
             }
 
             if (in_array($status, ['approved', 'completed'], true)) {
-                QrCode::query()->create([
-                    'service_request_id' => $request->id,
-                    'token' => 'DEMO-'.strtoupper(Str::random(10)).'-'.$referenceSeeds,
-                    'expires_at' => now()->addMonths(3),
-                ]);
+                QrCode::query()->firstOrCreate(
+                    ['service_request_id' => $request->id],
+                    [
+                        'token' => 'DEMO-'.strtoupper(Str::random(10)).'-'.$referenceSeeds,
+                        'expires_at' => now()->addMonths(6),
+                    ]
+                );
             }
 
-            if (random_int(0, 100) < 25) {
-                Notification::query()->create([
-                    'user_id' => $citizen->id,
-                    'title' => 'Request update — '.$service->name,
-                    'body' => 'Your request is now marked as '.str_replace('_', ' ', $status).'.',
-                    'data' => ['reference' => $reference],
-                    'read_at' => random_int(0, 1) ? now() : null,
-                    'created_at' => $submittedAt->copy()->addDay(),
-                ]);
+            if (random_int(0, 100) < 45) {
+                $this->seedNotification($citizen, $service->name, $status, $reference, $submittedAt);
+            }
+
+            if (random_int(0, 100) < 30) {
+                $this->seedNotification($officeStaff, $service->name, $status, $reference, $submittedAt);
             }
 
             $referenceSeeds++;
+        }
+    }
+
+    private function ensureRichDemoDataPerOffice(): void
+    {
+        $staffByOffice = collect($this->staff)->groupBy('office_id');
+        $statusRotation = ['pending', 'in_review', 'missing_documents', 'approved', 'rejected', 'completed'];
+
+        foreach ($this->offices as $office) {
+            $officeStaff = $staffByOffice->get($office->id)?->first() ?? $this->staff[0];
+            $officeServices = Service::query()->where('office_id', $office->id)->get();
+
+            if ($officeServices->isEmpty()) {
+                continue;
+            }
+
+            $requestCount = ServiceRequest::query()->where('office_id', $office->id)->count();
+            $needed = max(0, self::MIN_REQUESTS_PER_OFFICE - $requestCount);
+
+            for ($i = 0; $i < $needed; $i++) {
+                $status = $statusRotation[$i % count($statusRotation)];
+                $this->createDemoRequestForOffice($office, $officeServices->random(), $status, $officeStaff);
+            }
+
+            $this->topUpOfficeFeedback($office, $officeStaff, 4);
+            $this->topUpOfficeMessages($office, $officeStaff, 8);
+            $this->topUpOfficeAppointments($office, $officeStaff, 5);
+            $this->topUpOfficeNotifications($office, $officeStaff, 6);
+        }
+    }
+
+    private function createDemoRequestForOffice(
+        Office $office,
+        Service $service,
+        string $status,
+        User $officeStaff,
+    ): ServiceRequest {
+        $citizen = $this->citizens[array_rand($this->citizens)];
+        $submittedAt = now()->subDays(random_int(3, 120))->subHours(random_int(0, 10));
+        $reference = (string) Str::uuid();
+
+        $request = ServiceRequest::query()->create([
+            'reference_number' => $reference,
+            'citizen_id' => $citizen->id,
+            'service_id' => $service->id,
+            'office_id' => $office->id,
+            'status' => $status,
+            'notes' => self::DEMO_TAG,
+            'submitted_at' => $submittedAt,
+            'created_at' => $submittedAt,
+            'updated_at' => $submittedAt->copy()->addDays(random_int(1, 10)),
+        ]);
+
+        $this->seedStatusHistory($request, $status, $officeStaff, $submittedAt);
+        $this->seedCitizenDocument($request, $citizen);
+
+        if (in_array($status, ['approved', 'completed'], true)) {
+            $this->seedPayment($request, $citizen, $service, $submittedAt);
+            $this->seedGeneratedPdfs($request);
+            QrCode::query()->firstOrCreate(
+                ['service_request_id' => $request->id],
+                [
+                    'token' => 'DEMO-'.strtoupper(Str::random(12)),
+                    'expires_at' => now()->addMonths(6),
+                ]
+            );
+        }
+
+        if (in_array($status, ['in_review', 'approved', 'completed'], true)) {
+            $this->seedAppointment($request, $citizen, $officeStaff, $submittedAt);
+        }
+
+        if ($status === 'completed') {
+            $this->seedFeedback($request, $citizen, $service);
+        }
+
+        if (in_array($status, ['in_review', 'missing_documents'], true)) {
+            $this->seedMessageThread($request, $citizen, $officeStaff);
+        }
+
+        $this->seedNotification($citizen, $service->name, $status, $reference, $submittedAt);
+
+        return $request;
+    }
+
+    private function topUpOfficeFeedback(Office $office, User $officeStaff, int $minimum): void
+    {
+        $current = Feedback::query()->where('office_id', $office->id)->count();
+
+        for ($i = $current; $i < $minimum; $i++) {
+            $request = ServiceRequest::query()
+                ->where('office_id', $office->id)
+                ->where('status', 'completed')
+                ->inRandomOrder()
+                ->first();
+
+            if (! $request) {
+                $service = Service::query()->where('office_id', $office->id)->first();
+                if (! $service) {
+                    break;
+                }
+                $request = $this->createDemoRequestForOffice($office, $service, 'completed', $officeStaff);
+            }
+
+            $citizen = User::query()->find($request->citizen_id);
+            $service = Service::query()->find($request->service_id);
+
+            if ($citizen && $service) {
+                $this->seedFeedback($request, $citizen, $service);
+            }
+        }
+    }
+
+    private function topUpOfficeMessages(Office $office, User $officeStaff, int $minimum): void
+    {
+        $current = Message::query()
+            ->whereHas('serviceRequest', fn ($q) => $q->where('office_id', $office->id))
+            ->count();
+
+        while ($current < $minimum) {
+            $request = ServiceRequest::query()
+                ->where('office_id', $office->id)
+                ->inRandomOrder()
+                ->first();
+
+            if (! $request) {
+                break;
+            }
+
+            $citizen = User::query()->find($request->citizen_id);
+            if ($citizen) {
+                $this->seedMessageThread($request, $citizen, $officeStaff);
+                $current += 2;
+            } else {
+                break;
+            }
+        }
+    }
+
+    private function topUpOfficeAppointments(Office $office, User $officeStaff, int $minimum): void
+    {
+        $current = Appointment::query()->where('office_id', $office->id)->count();
+
+        while ($current < $minimum) {
+            $request = ServiceRequest::query()
+                ->where('office_id', $office->id)
+                ->inRandomOrder()
+                ->first();
+
+            $citizen = $request
+                ? User::query()->find($request->citizen_id)
+                : $this->citizens[array_rand($this->citizens)];
+
+            if (! $citizen) {
+                break;
+            }
+
+            $start = now()->addDays(random_int(2, 30))->setTime(random_int(8, 15), 0);
+
+            Appointment::query()->create([
+                'service_request_id' => $request?->id,
+                'office_id' => $office->id,
+                'citizen_id' => $citizen->id,
+                'staff_id' => $officeStaff->id,
+                'starts_at' => $start,
+                'ends_at' => $start->copy()->addMinutes(30),
+                'status' => random_int(0, 1) ? 'scheduled' : 'completed',
+                'notes' => 'Demo appointment — municipal front desk visit.',
+            ]);
+
+            $current++;
+        }
+    }
+
+    private function topUpOfficeNotifications(Office $office, User $officeStaff, int $minimum): void
+    {
+        $staffCount = Notification::query()->where('user_id', $officeStaff->id)->count();
+        $citizenIds = ServiceRequest::query()
+            ->where('office_id', $office->id)
+            ->pluck('citizen_id')
+            ->unique();
+
+        for ($i = $staffCount; $i < $minimum; $i++) {
+            $this->seedNotification(
+                $officeStaff,
+                'Office activity — '.$office->municipality,
+                'in_review',
+                'DEMO-'.$office->id.'-'.$i,
+                now()->subDays(random_int(1, 14))
+            );
+        }
+
+        foreach ($citizenIds->take(5) as $citizenId) {
+            $citizen = User::query()->find($citizenId);
+            if (! $citizen) {
+                continue;
+            }
+
+            if (Notification::query()->where('user_id', $citizen->id)->count() >= 3) {
+                continue;
+            }
+
+            $this->seedNotification(
+                $citizen,
+                'Municipal update — '.$office->municipality,
+                'completed',
+                'DEMO-N-'.$office->id.'-'.$citizenId,
+                now()->subDays(random_int(1, 20))
+            );
         }
     }
 
@@ -520,14 +769,127 @@ class DemoDataSeeder extends Seeder
         ]);
     }
 
-    private function seedMessage(ServiceRequest $request, User $citizen, User $staff): void
+    private function seedMessageThread(ServiceRequest $request, User $citizen, User $staff): void
     {
-        Message::query()->create([
+        $pairs = [
+            [$staff, $citizen, 'Please upload the missing document listed in your request checklist.'],
+            [$citizen, $staff, 'I have attached the requested file. Please confirm receipt.'],
+            [$staff, $citizen, 'Thank you — we are reviewing your submission and will update the status shortly.'],
+        ];
+
+        $count = random_int(2, 3);
+
+        for ($i = 0; $i < $count; $i++) {
+            [$sender, $recipient, $body] = $pairs[$i];
+
+            Message::query()->create([
+                'service_request_id' => $request->id,
+                'sender_id' => $sender->id,
+                'recipient_id' => $recipient->id,
+                'message' => $body,
+                'read_at' => random_int(0, 1) ? now() : null,
+                'created_at' => now()->subDays(random_int(0, 10)),
+            ]);
+        }
+    }
+
+    private function ensureDemoCitizenUploadPdf(): void
+    {
+        if (Storage::disk('public')->exists($this->demoCitizenUploadPdfPath)) {
+            return;
+        }
+
+        Storage::disk('public')->makeDirectory('documents');
+
+        $pdf = Pdf::loadView('pdfs.citizen-upload-demo', [
+            'reference' => 'DEMO-SEED',
+        ]);
+
+        Storage::disk('public')->put($this->demoCitizenUploadPdfPath, $pdf->output());
+    }
+
+    private function repairMislabeledCitizenDocuments(): void
+    {
+        Document::query()
+            ->where('type', 'required')
+            ->where('file_path', $this->demoIdPath)
+            ->where('mime_type', 'application/pdf')
+            ->update([
+                'file_path' => $this->demoCitizenUploadPdfPath,
+                'size' => Storage::disk('public')->size($this->demoCitizenUploadPdfPath),
+            ]);
+    }
+
+    private function backfillGeneratedPdfsForDemoRequests(): void
+    {
+        ServiceRequest::query()
+            ->where('notes', 'like', 'demo-seed%')
+            ->whereIn('status', ['approved', 'completed'])
+            ->whereDoesntHave('documents', fn ($query) => $query->where('type', 'generated_pdf'))
+            ->with(['service', 'office', 'citizen'])
+            ->each(fn (ServiceRequest $request) => $this->seedGeneratedPdfs($request));
+    }
+
+    private function seedGeneratedPdfs(ServiceRequest $request): void
+    {
+        if ($request->documents()->where('type', 'generated_pdf')->exists()) {
+            return;
+        }
+
+        $request->loadMissing(['service', 'office', 'citizen']);
+        $pdfService = app(PdfGenerationService::class);
+
+        if ($request->status === 'approved') {
+            $path = $pdfService->generateApprovalCertificate($request);
+        } else {
+            $path = $pdfService->generateResponseLetter($request);
+        }
+
+        $receiptPath = $pdfService->generateReceipt($request);
+
+        foreach ([$path, $receiptPath] as $generatedPath) {
+            $request->documents()->create([
+                'uploaded_by' => $request->citizen_id,
+                'type' => 'generated_pdf',
+                'file_path' => $generatedPath,
+                'original_name' => basename($generatedPath),
+                'mime_type' => 'application/pdf',
+                'size' => Storage::disk('public')->size($generatedPath),
+            ]);
+        }
+    }
+
+    private function seedCitizenDocument(ServiceRequest $request, User $citizen): void
+    {
+        if (Document::query()->where('service_request_id', $request->id)->where('type', 'required')->exists()) {
+            return;
+        }
+
+        Document::query()->create([
             'service_request_id' => $request->id,
-            'sender_id' => $staff->id,
-            'recipient_id' => $citizen->id,
-            'message' => 'Please upload the missing document listed in your request checklist.',
+            'uploaded_by' => $citizen->id,
+            'type' => 'required',
+            'file_path' => $this->demoCitizenUploadPdfPath,
+            'original_name' => 'citizen-upload-'.$request->reference_number.'.pdf',
+            'mime_type' => 'application/pdf',
+            'size' => Storage::disk('public')->size($this->demoCitizenUploadPdfPath),
+        ]);
+    }
+
+    private function seedNotification(
+        User $user,
+        string $serviceName,
+        string $status,
+        string $reference,
+        Carbon $at,
+    ): void {
+        Notification::query()->create([
+            'user_id' => $user->id,
+            'title' => 'Request update — '.$serviceName,
+            'body' => 'Your request '.$reference.' is now: '.str_replace('_', ' ', $status).'.',
+            'data' => ['reference' => $reference, 'status' => $status],
             'read_at' => random_int(0, 1) ? now() : null,
+            'created_at' => $at->copy()->addHours(random_int(2, 48)),
         ]);
     }
 }

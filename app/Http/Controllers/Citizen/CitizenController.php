@@ -4,6 +4,17 @@ namespace App\Http\Controllers\Citizen;
 
 use App\Events\MessageSent;
 use App\Events\RequestSubmitted;
+use App\Models\Appointment;
+use App\Models\Message;
+use App\Models\Notification;
+use App\Models\User;
+use Carbon\Carbon;
+use App\Mail\ServiceRequestSubmitted;
+use Illuminate\Support\Facades\Mail;
+use App\Models\Feedback;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
 use App\Mail\ServiceRequestSubmitted;
 use App\Models\Appointment;
@@ -224,6 +235,10 @@ class CitizenController extends Controller
         ]);
     }
 
+    return redirect()
+        ->route('citizen.requests')
+        ->with('success', __('ui.flash.request_submitted', ['ref' => $serviceRequest->reference_number]));
+}
     public function createFeedback(ServiceRequest $serviceRequest)
     {
         abort_if($serviceRequest->citizen_id !== Auth::id(), 403);
@@ -321,6 +336,13 @@ class CitizenController extends Controller
             })
             ->latest()
             ->get();
+    return redirect()
+        ->route('citizen.history')
+        ->with('success', __('ui.flash.feedback_submitted'));
+}
+   public function chat(ServiceRequest $serviceRequest)
+{
+    abort_if($serviceRequest->citizen_id !== Auth::id(), 403);
 
         return view('citizen.payments', compact('requests'));
     }
@@ -367,6 +389,8 @@ class CitizenController extends Controller
         return redirect()
             ->route('citizen.payments')
             ->with('success', 'Payment completed successfully.');
+    if (!$staffUser) {
+        return back()->with('error', __('ui.flash.no_staff_for_chat'));
     }
 
     public function maps()
@@ -384,6 +408,20 @@ class CitizenController extends Controller
             ->get();
 
         $googleMapsApiKey = config('services.google.maps_key');
+    return back()->with('success', __('ui.flash.message_sent'));
+}
+   public function payments()
+{
+    $requests = ServiceRequest::with(['service', 'office', 'payments'])
+        ->where('citizen_id', Auth::id())
+        ->whereDoesntHave('payments', function ($query) {
+            $query->where('status', 'paid');
+        })
+        ->latest()
+        ->get();
+
+    return view('citizen.payments', compact('requests'));
+}
 
         return view('citizen.maps', compact('offices', 'googleMapsApiKey'));
     }
@@ -407,6 +445,40 @@ class CitizenController extends Controller
             ->whereIn('status', ['pending', 'in_review', 'missing_documents', 'approved'])
             ->latest()
             ->get();
+    return redirect()
+        ->route('citizen.payments')
+        ->with('success', __('ui.flash.payment_completed'));
+}
+
+public function maps()
+{
+    $offices = Office::query()
+        ->select(
+            'id',
+            'name',
+            'name_ar',
+            'address',
+            'address_ar',
+            'working_hours',
+            'latitude',
+            'longitude'
+        )
+        ->whereNotNull('latitude')
+        ->whereNotNull('longitude')
+        ->get()
+        ->map(fn (Office $office) => [
+            'id' => $office->id,
+            'name' => $office->localized('name'),
+            'address' => $office->localized('address'),
+            'working_hours' => $office->working_hours,
+            'latitude' => $office->latitude,
+            'longitude' => $office->longitude,
+        ]);
+
+    $googleMapsApiKey = config('services.google.maps_key');
+
+    return view('citizen.maps', compact('offices', 'googleMapsApiKey'));
+}
 
         return view('citizen.appointment-create', compact('office', 'serviceRequests'));
     }
@@ -429,6 +501,16 @@ class CitizenController extends Controller
                 return back()->with('error', 'Invalid service request selected.');
             }
         }
+    $bookedAppointments = Appointment::query()
+        ->with('office')
+        ->where('citizen_id', Auth::id())
+        ->where('status', 'scheduled')
+        ->where('starts_at', '>=', now())
+        ->orderBy('starts_at')
+        ->get();
+
+    return view('citizen.appointments', compact('offices', 'bookedAppointments'));
+}
 
         $startsAt = Carbon::parse($validated['starts_at']);
         $endsAt = $startsAt->copy()->addMinutes(30);
@@ -488,6 +570,69 @@ class CitizenController extends Controller
 
         return view('citizen.history', compact('requests'));
     }
+public function storeAppointment(Request $request)
+{
+    $validated = $request->validate([
+        'office_id' => ['required', 'exists:offices,id'],
+        'appointment_date' => ['required', 'date', 'after_or_equal:today'],
+        'appointment_time' => ['required', 'in:'.implode(',', appointment_time_slots())],
+        'notes' => ['nullable', 'string', 'max:1000'],
+    ]);
+
+    $startsAt = Carbon::parse($validated['appointment_date'].' '.$validated['appointment_time']);
+    $endsAt = $startsAt->copy()->addHour();
+
+    $slotTaken = Appointment::query()
+        ->where('office_id', $validated['office_id'])
+        ->where('starts_at', $startsAt)
+        ->where('status', 'scheduled')
+        ->exists();
+
+    if ($slotTaken) {
+        return back()
+            ->withErrors(['appointment_time' => __('ui.flash.appointment_slot_taken')])
+            ->withInput();
+    }
+
+    $serviceRequest = ServiceRequest::query()
+        ->where('citizen_id', Auth::id())
+        ->where('office_id', $validated['office_id'])
+        ->whereIn('status', ['pending', 'in_review', 'missing_documents', 'approved'])
+        ->latest('submitted_at')
+        ->first();
+
+    $staff = User::query()
+        ->where('office_id', $validated['office_id'])
+        ->whereHas('role', fn ($query) => $query->where('slug', 'office_staff'))
+        ->first();
+
+    $appointment = Appointment::query()->create([
+        'service_request_id' => $serviceRequest?->id,
+        'office_id' => $validated['office_id'],
+        'citizen_id' => Auth::id(),
+        'staff_id' => $staff?->id,
+        'starts_at' => $startsAt,
+        'ends_at' => $endsAt,
+        'status' => 'scheduled',
+        'notes' => $validated['notes'] ?? null,
+    ]);
+
+    $office = Office::query()->find($validated['office_id']);
+
+    Notification::query()->create([
+        'user_id' => Auth::id(),
+        'title' => __('ui.flash.appointment_booked'),
+        'body' => __('ui.citizen.appointment_confirmed_body', [
+            'office' => $office?->localized('name') ?? __('ui.na'),
+            'when' => localized_datetime($startsAt),
+        ]),
+        'data' => ['appointment_id' => $appointment->id, 'office_id' => $office?->id],
+    ]);
+
+    return redirect()
+        ->route('citizen.appointments')
+        ->with('success', __('ui.flash.appointment_booked'));
+}
 
     public function downloadReceipt(ServiceRequest $serviceRequest)
     {
@@ -560,6 +705,9 @@ public function processCryptoPayment(Request $request, ServiceRequest $serviceRe
 
     $cryptoCurrency = $validated['crypto_currency'];
     $cryptoAmount = $amountUsd / $rates[$cryptoCurrency];
+    if (!$payment) {
+        return back()->with('error', __('ui.flash.no_receipt'));
+    }
 
     $wallets = [
         'BTC' => 'bc1qwebdev2municipalitydemo8x5p9r4q',
@@ -616,5 +764,19 @@ public function confirmCryptoPayment(Payment $payment)
     return redirect()
         ->route('citizen.history')
         ->with('success', 'Crypto payment confirmed successfully.');
+    $document = Document::query()
+        ->where('service_request_id', $serviceRequest->id)
+        ->orderByRaw("CASE type WHEN 'generated_pdf' THEN 0 WHEN 'response' THEN 1 ELSE 2 END")
+        ->latest()
+        ->first();
+
+    if (! $document || ! Storage::disk('public')->exists($document->file_path)) {
+        return back()->with('error', __('ui.flash.no_document'));
+    }
+
+    return Storage::disk('public')->download(
+        $document->file_path,
+        $document->original_name ?? basename($document->file_path)
+    );
 }
 }

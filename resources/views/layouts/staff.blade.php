@@ -264,7 +264,7 @@
     @if(auth()->user()->office)
     <div class="sidebar-office">
         <p>Your Office</p>
-        <span>{{ auth()->user()->office->name }}</span>
+        <span>{{ auth()->user()->office->localized('name') }}</span>
     </div>
     @endif
 

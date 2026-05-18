@@ -1,61 +1,65 @@
 @extends('layouts.admin')
 
-@section('title', 'Create Office')
-@section('page-title', 'Create New Office')
+@section('title', __('ui.admin.create_office'))
+@section('page-title', __('ui.admin.create_office'))
 
 @section('content')
+<x-form-page>
 <div class="page-header">
     <div>
-        <div class="page-title">Create New Office</div>
-        <div class="page-subtitle">Add a new government office to the platform</div>
+        <div class="page-title">{{ __('ui.admin.create_office') }}</div>
+        <div class="page-subtitle">{{ __('ui.admin.create_office_sub') }}</div>
     </div>
-    <a href="{{ route('admin.offices.index') }}" class="btn-secondary">← Back to Offices</a>
+    <a href="{{ route('admin.offices.index') }}" class="btn-secondary">{{ __('ui.admin.back_offices') }}</a>
 </div>
 
-<div class="card" style="max-width: 700px;">
+<div class="card">
     <form method="POST" action="{{ route('admin.offices.store') }}">
         @csrf
 
         <div class="form-group">
-            <label class="form-label">Office Name *</label>
-            <input type="text" name="name" class="form-control" value="{{ old('name') }}" placeholder="e.g. Beirut Municipality Office">
+            <label class="form-label">{{ __('ui.table.office_name') }} *</label>
+            <input type="text" name="name" class="form-control" value="{{ old('name') }}" placeholder="{{ __('ui.placeholders.office_name') }}">
             @error('name') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
+        @include('partials.catalog-ar-fields-office', ['office' => new \App\Models\Office])
+
         <div class="form-group">
-            <label class="form-label">Municipality</label>
-            <input type="text" name="municipality" class="form-control" value="{{ old('municipality') }}" placeholder="e.g. Beirut">
+            <label class="form-label">{{ __('ui.table.municipality') }}</label>
+            <input type="text" name="municipality" class="form-control" value="{{ old('municipality') }}" placeholder="{{ __('ui.placeholders.municipality') }}">
             @error('municipality') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div class="form-group">
-            <label class="form-label">Address</label>
-            <input type="text" name="address" class="form-control" value="{{ old('address') }}" placeholder="e.g. Downtown Beirut, Main Street">
+            <label class="form-label">{{ __('ui.admin.address') }}</label>
+            <input type="text" name="address" class="form-control" value="{{ old('address') }}" placeholder="{{ __('ui.placeholders.address') }}">
             @error('address') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div class="form-group">
-            <label class="form-label">Contact Number</label>
-            <input type="text" name="contact_number" class="form-control" value="{{ old('contact_number') }}" placeholder="e.g. +961 1 234 567">
+            <label class="form-label">{{ __('ui.admin.contact_number') }}</label>
+            <input type="text" name="contact_number" class="form-control" value="{{ old('contact_number') }}" placeholder="{{ __('ui.placeholders.contact_number') }}">
             @error('contact_number') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div class="form-group">
-            <label class="form-label">Contact Email</label>
-            <input type="email" name="contact_email" class="form-control" value="{{ old('contact_email') }}" placeholder="e.g. office@municipality.gov.lb">
+            <label class="form-label">{{ __('ui.admin.contact_email') }}</label>
+            <input type="email" name="contact_email" class="form-control" value="{{ old('contact_email') }}" placeholder="{{ __('ui.placeholders.contact_email') }}">
             @error('contact_email') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div class="form-group">
-            <label class="form-label">Working Hours</label>
-            <input type="text" name="working_hours" class="form-control" value="{{ old('working_hours') }}" placeholder="e.g. Mon-Fri 8:00AM - 4:00PM">
+            <label class="form-label">{{ __('ui.admin.working_hours') }}</label>
+            <input type="text" name="working_hours" class="form-control" value="{{ old('working_hours') }}" placeholder="{{ __('ui.placeholders.working_hours') }}">
             @error('working_hours') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
-        <div style="display:flex; gap:12px; margin-top:8px;">
-            <button type="submit" class="btn-primary">Create Office</button>
-            <a href="{{ route('admin.offices.index') }}" class="btn-secondary">Cancel</a>
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">{{ __('ui.admin.create_office_btn') }}</button>
+            <a href="{{ route('admin.offices.index') }}" class="btn-secondary">{{ __('ui.cancel') }}</a>
         </div>
     </form>
 </div>
+</x-form-page>
 @endsection

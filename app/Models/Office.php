@@ -2,15 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedContent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Office extends Model
 {
+    use HasLocalizedContent;
+
     protected $fillable = [
         'name',
+        'name_ar',
         'municipality',
+        'municipality_ar',
         'address',
+        'address_ar',
         'contact_number',
         'contact_email',
         'maps_place_id',

@@ -18,6 +18,6 @@
             fetchpriority="high"
         >
     </div>
-    <p class="hero-headline">Create your account.</p>
-    <p class="hero-text">It’s quick, easy, and secure — get started in less than a minute.</p>
+    <p class="hero-headline">{{ __('ui.auth.hero_register_headline') }}</p>
+    <p class="hero-text">{{ __('ui.auth.hero_register_quick') }}</p>
 </div>

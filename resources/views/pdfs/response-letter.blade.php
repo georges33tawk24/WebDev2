@@ -155,7 +155,7 @@
 </div>
 
 <div class="subject">
-    <p><strong>Subject:</strong> <span>Response to Service Request — {{ $serviceRequest->service?->name ?? '—' }}</span></p>
+    <p><strong>Subject:</strong> <span>Response to Service Request — {{ $serviceRequest->service?->localized('name') ?? '—' }}</span></p>
 </div>
 
 <div class="body-text">
@@ -163,7 +163,7 @@
     <br>
     <p>
         We are writing to inform you of the status of your service request submitted to
-        {{ $serviceRequest->office?->name ?? 'our office' }}. Please find the details of your request below.
+        {{ $serviceRequest->office?->localized('name') ?? 'our office' }}. Please find the details of your request below.
     </p>
 </div>
 
@@ -175,7 +175,7 @@
         </tr>
         <tr>
             <td>Service Requested</td>
-            <td>{{ $serviceRequest->service?->name ?? '—' }}</td>
+            <td>{{ $serviceRequest->service?->localized('name') ?? '—' }}</td>
         </tr>
         <tr>
             <td>Date Submitted</td>
@@ -210,7 +210,7 @@
 
 <div class="signature">
     <div class="line"></div>
-    <p><strong>{{ $serviceRequest->office?->name ?? 'Government Office' }}</strong></p>
+    <p><strong>{{ $serviceRequest->office?->localized('name') ?? 'Government Office' }}</strong></p>
     <p>E-Services Platform</p>
     <p>{{ $serviceRequest->office?->contact_email ?? '' }}</p>
 </div>

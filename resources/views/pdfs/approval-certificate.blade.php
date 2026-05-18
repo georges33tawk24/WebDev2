@@ -163,11 +163,11 @@
         </tr>
         <tr>
             <td>Service Requested</td>
-            <td>{{ $serviceRequest->service?->name ?? '—' }}</td>
+            <td>{{ $serviceRequest->service?->localized('name') ?? '—' }}</td>
         </tr>
         <tr>
             <td>Government Office</td>
-            <td>{{ $serviceRequest->office?->name ?? '—' }}</td>
+            <td>{{ $serviceRequest->office?->localized('name') ?? '—' }}</td>
         </tr>
         <tr>
             <td>Date Submitted</td>
@@ -187,7 +187,7 @@
 <div class="approval-text">
     <p>
         This is to certify that the above-mentioned service request has been
-        <strong>reviewed and approved</strong> by the {{ $serviceRequest->office?->name ?? 'Government Office' }}.
+        <strong>reviewed and approved</strong> by the {{ $serviceRequest->office?->localized('name') ?? 'Government Office' }}.
         The citizen is hereby authorized to proceed with the approved service.
     </p>
 </div>
@@ -196,7 +196,7 @@
     <div class="signature">
         <div class="line"></div>
         <p>Authorized Signature</p>
-        <p>{{ $serviceRequest->office?->name ?? 'Government Office' }}</p>
+        <p>{{ $serviceRequest->office?->localized('name') ?? 'Government Office' }}</p>
     </div>
     <div class="stamp">
         OFFICIAL<br>APPROVED<br>✓

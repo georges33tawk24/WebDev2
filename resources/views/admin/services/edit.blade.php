@@ -1,42 +1,51 @@
 @extends('layouts.admin')
 
-@section('title', 'Edit Service')
-@section('page-title', 'Edit Service')
+@section('title', __('ui.admin.edit_service'))
+@section('page-title', __('ui.admin.edit_service'))
 
 @section('content')
+@php($catalogPrefix = $catalogPrefix ?? 'admin')
+<x-form-page>
 <div class="page-header">
     <div>
-        <div class="page-title">Edit Service</div>
-        <div class="page-subtitle">Update the details of {{ $service->name }}</div>
+        <div class="page-title">{{ __('ui.admin.edit_service') }}</div>
+        <div class="page-subtitle">{{ __('ui.admin.edit_service_sub', ['name' => $service->name]) }}</div>
     </div>
-    <a href="{{ route('admin.services.index') }}" class="btn-secondary"> Back to Services</a>
+    <a href="{{ route($catalogPrefix . '.services.index') }}" class="btn-secondary"> {{ __('ui.admin.back_services') }}</a>
 </div>
 
-<div class="card" style="max-width: 700px;">
-    <form method="POST" action="{{ route('admin.services.update', $service) }}">
+<div class="card">
+    <form method="POST" action="{{ route($catalogPrefix . '.services.update', $service) }}">
         @csrf
         @method('PUT')
 
         <div class="form-group">
-            <label class="form-label">Office </label>
-            <select name="office_id" class="form-control">
-                <option value="">Select an office...</option>
-                @foreach($offices as $office)
-                    <option value="{{ $office->id }}" {{ old('office_id', $service->office_id) == $office->id ? 'selected' : '' }}>
-                        {{ $office->name }}
-                    </option>
-                @endforeach
-            </select>
-            @error('office_id') <div class="form-error">{{ $message }}</div> @enderror
+            <label class="form-label">{{ __('ui.table.office') }}</label>
+            @if(!empty($lockOffice) && auth()->user()?->office)
+                <input type="hidden" name="office_id" value="{{ auth()->user()->office_id }}">
+                <p style="padding:10px 12px; background:#f3f4f6; border-radius:8px; font-weight:600;">
+                    {{ auth()->user()->office->localized('name') }}
+                </p>
+            @else
+                <select name="office_id" class="form-control">
+                    <option value="">{{ __('ui.admin.select_an_office') }}...</option>
+                    @foreach($offices as $office)
+                        <option value="{{ $office->id }}" {{ old('office_id', $service->office_id) == $office->id ? 'selected' : '' }}>
+                            {{ $office->localized('name') }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('office_id') <div class="form-error">{{ $message }}</div> @enderror
+            @endif
         </div>
 
         <div class="form-group">
-            <label class="form-label">Category</label>
+            <label class="form-label">{{ __('ui.table.category') }}</label>
             <select name="category_id" class="form-control">
-                <option value="">Select a category...</option>
+                <option value="">{{ __('ui.admin.select_a_category') }}...</option>
                 @foreach($categories as $category)
                     <option value="{{ $category->id }}" {{ old('category_id', $service->category_id) == $category->id ? 'selected' : '' }}>
-                        {{ $category->name }}
+                        {{ $category->localized('name') }}
                     </option>
                 @endforeach
             </select>
@@ -44,49 +53,69 @@
         </div>
 
         <div class="form-group">
-            <label class="form-label">Service Name </label>
+            <label class="form-label">{{ __('ui.admin.service_name') }} </label>
             <input type="text" name="name" class="form-control" value="{{ old('name', $service->name) }}">
             @error('name') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div class="form-group">
-            <label class="form-label">Description</label>
+            <label class="form-label">{{ __('ui.admin.name_ar') }}</label>
+            <input type="text" name="name_ar" class="form-control" value="{{ old('name_ar', $service->name_ar) }}" dir="rtl">
+            @error('name_ar') <div class="form-error">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">{{ __('ui.admin.description') }}</label>
             <textarea name="description" class="form-control" rows="4">{{ old('description', $service->description) }}</textarea>
             @error('description') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
             <div class="form-group">
-                <label class="form-label">Price ($) </label>
+                <label class="form-label">{{ __('ui.admin.price_usd') }} </label>
                 <input type="number" name="price" class="form-control" value="{{ old('price', $service->price) }}" min="0" step="0.01">
                 @error('price') <div class="form-error">{{ $message }}</div> @enderror
             </div>
 
             <div class="form-group">
-                <label class="form-label">Estimated Duration (minutes)</label>
+                <label class="form-label">{{ __('ui.admin.estimated_duration') }}</label>
                 <input type="number" name="estimated_duration_minutes" class="form-control" value="{{ old('estimated_duration_minutes', $service->estimated_duration_minutes) }}" min="1">
                 @error('estimated_duration_minutes') <div class="form-error">{{ $message }}</div> @enderror
             </div>
         </div>
 
         <div class="form-group">
-            <label class="form-label">Required Documents</label>
-            <input type="text" name="required_documents" class="form-control" value="{{ old('required_documents', is_array($service->required_documents) ? implode(', ', $service->required_documents) : '') }}" placeholder="e.g. ID Card, Birth Certificate (comma separated)">
-            <small style="color:#6b7280; font-size:12px;">Separate multiple documents with commas</small>
+            <label class="form-label">{{ __('ui.admin.required_documents') }}</label>
+            <input type="text" name="required_documents" class="form-control" value="{{ old('required_documents', is_array($service->required_documents) ? implode(', ', $service->required_documents) : '') }}" placeholder="{{ __('ui.placeholders.required_documents') }}">
+            <small style="color:#6b7280; font-size:12px;">{{ __('ui.admin.required_docs_comma_hint') }}</small>
             @error('required_documents') <div class="form-error">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">{{ __('ui.admin.description_ar') }}</label>
+            <textarea name="description_ar" class="form-control" rows="4" dir="rtl">{{ old('description_ar', $service->description_ar) }}</textarea>
+            @error('description_ar') <div class="form-error">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">{{ __('ui.admin.required_documents_ar') }}</label>
+            <input type="text" name="required_documents_ar" class="form-control" value="{{ old('required_documents_ar', is_array($service->required_documents_ar) ? implode(', ', $service->required_documents_ar) : '') }}" placeholder="{{ __('ui.placeholders.required_documents') }}">
+            <small style="color:#6b7280; font-size:12px;">{{ __('ui.admin.required_docs_comma_hint') }}</small>
+            @error('required_documents_ar') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div class="form-group">
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
                 <input type="checkbox" name="is_active" value="1" {{ old('is_active', $service->is_active) ? 'checked' : '' }}>
-                <span class="form-label" style="margin:0;">Active</span>
+                <span class="form-label" style="margin:0;">{{ __('ui.active') }}</span>
             </label>
         </div>
 
-        <div style="display:flex; gap:12px; margin-top:8px;">
-            <button type="submit" class="btn-primary">Update Service</button>
-            <a href="{{ route('admin.services.index') }}" class="btn-secondary">Cancel</a>
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">{{ __('ui.admin.update_service') }}</button>
+            <a href="{{ route($catalogPrefix . '.services.index') }}" class="btn-secondary">{{ __('ui.cancel') }}</a>
         </div>
     </form>
 </div>
+</x-form-page>
 @endsection

@@ -3,8 +3,13 @@
 use App\Http\Controllers\Api\IdDocumentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LocaleController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/locale/{locale}', [LocaleController::class, 'switch'])
+    ->whereIn('locale', ['en', 'ar'])
+    ->name('locale.switch');
 
 Route::get('/', function () {
     return redirect()->route(AuthController::homeRouteFor(Auth::user()));
@@ -82,6 +87,8 @@ Route::middleware(['auth', '2fa', 'citizen.id'])->group(function (): void {
         Route::get('/users/staff/create', [\App\Http\Controllers\Admin\UserController::class, 'createStaff'])->name('users.staff.create');
         Route::post('/users/staff', [\App\Http\Controllers\Admin\UserController::class, 'storeStaff'])->name('users.staff.store');
         Route::get('/citizens', [\App\Http\Controllers\Admin\UserController::class, 'citizens'])->name('citizens.index');
+        Route::get('/users/citizens/create', [\App\Http\Controllers\Admin\UserController::class, 'createCitizen'])->name('users.citizens.create');
+        Route::post('/users/citizens', [\App\Http\Controllers\Admin\UserController::class, 'storeCitizen'])->name('users.citizens.store');
         Route::patch('/users/{user}/toggle', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])->name('users.toggle');
         Route::resource('categories', \App\Http\Controllers\Admin\CategoryController::class);
         Route::resource('services', \App\Http\Controllers\Admin\ServiceController::class);
@@ -92,9 +99,13 @@ Route::middleware(['auth', '2fa', 'citizen.id'])->group(function (): void {
     // Staff Routes
     Route::middleware('role:office_staff')->prefix('staff')->name('staff.')->group(function () {
         Route::get('/requests', [\App\Http\Controllers\Staff\RequestController::class, 'index'])->name('requests.index');
-        Route::get('/requests/{serviceRequest}', [\App\Http\Controllers\Staff\RequestController::class, 'show'])->name('requests.show');
-        Route::patch('/requests/{serviceRequest}/status', [\App\Http\Controllers\Staff\RequestController::class, 'updateStatus'])->name('requests.updateStatus');
-        Route::post('/requests/{serviceRequest}/document', [\App\Http\Controllers\Staff\RequestController::class, 'uploadDocument'])->name('requests.uploadDocument');
+
+        Route::scopeBindings()->group(function () {
+            Route::get('/requests/{serviceRequest}', [\App\Http\Controllers\Staff\RequestController::class, 'show'])->name('requests.show');
+            Route::patch('/requests/{serviceRequest}/status', [\App\Http\Controllers\Staff\RequestController::class, 'updateStatus'])->name('requests.updateStatus');
+            Route::post('/requests/{serviceRequest}/document', [\App\Http\Controllers\Staff\RequestController::class, 'uploadDocument'])->name('requests.uploadDocument');
+            Route::get('/requests/{serviceRequest}/documents/{document}/download', [\App\Http\Controllers\Staff\RequestController::class, 'downloadDocument'])->name('requests.documents.download');
+        });
         Route::get('/office', [\App\Http\Controllers\Staff\OfficeProfileController::class, 'edit'])->name('office.edit');
         Route::put('/office', [\App\Http\Controllers\Staff\OfficeProfileController::class, 'update'])->name('office.update');
         Route::get('/feedback', [\App\Http\Controllers\Staff\FeedbackController::class, 'index'])->name('feedback.index');
@@ -104,6 +115,8 @@ Route::middleware(['auth', '2fa', 'citizen.id'])->group(function (): void {
 
 Route::post('/requests/{serviceRequest}/chat', [\App\Http\Controllers\Staff\RequestController::class, 'sendMessage'])
     ->name('requests.chat.send');
+        Route::resource('categories', \App\Http\Controllers\Staff\CategoryController::class);
+        Route::resource('services', \App\Http\Controllers\Staff\ServiceController::class);
     });
     //Route::middleware(['citizen.id','role:citizen'])->prefix('citizen')->name('citizen.')->group(function () {
 // Citizen portal (Chris module)

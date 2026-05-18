@@ -31,7 +31,7 @@ class EnsureCitizenIdDocument
         )) {
             return redirect()
                 ->route('id-upload')
-                ->with('status', 'Please upload your ID document to continue.');
+                ->with('status', __('ui.flash.id_upload_required'));
         }
 
         return $next($request);

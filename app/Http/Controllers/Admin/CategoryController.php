@@ -22,14 +22,16 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'        => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'name'            => ['required', 'string', 'max:255'],
+            'name_ar'         => ['nullable', 'string', 'max:255'],
+            'description'     => ['nullable', 'string'],
+            'description_ar'  => ['nullable', 'string'],
         ]);
 
         Category::create($validated);
 
         return redirect()->route('admin.categories.index')
-            ->with('success', 'Category created successfully!');
+            ->with('success', __('ui.flash.category_created'));
     }
 
     public function edit(Category $category)
@@ -40,20 +42,22 @@ class CategoryController extends Controller
     public function update(Request $request, Category $category)
     {
         $validated = $request->validate([
-            'name'        => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'name'            => ['required', 'string', 'max:255'],
+            'name_ar'         => ['nullable', 'string', 'max:255'],
+            'description'     => ['nullable', 'string'],
+            'description_ar'  => ['nullable', 'string'],
         ]);
 
         $category->update($validated);
 
         return redirect()->route('admin.categories.index')
-            ->with('success', 'Category updated successfully!');
+            ->with('success', __('ui.flash.category_updated'));
     }
 
     public function destroy(Category $category)
     {
         $category->delete();
         return redirect()->route('admin.categories.index')
-            ->with('success', 'Category deleted successfully!');
+            ->with('success', __('ui.flash.category_deleted'));
     }
 }

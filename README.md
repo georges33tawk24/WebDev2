@@ -1,6 +1,8 @@
 # WebDev2 — Municipal E-Services Portal
 
-Laravel application for a government e-services platform: citizen portal, office staff workflows, admin management, authentication (2FA, Google/Facebook OAuth), ID upload/OCR, payments, appointments, and reports.
+Laravel 13 application for a Lebanon-themed government e-services platform: **citizen portal**, **office staff** workflows, **admin** management, **English/Arabic (RTL)** UI, authentication (2FA, Google/Facebook OAuth), ID upload/OCR, payments, appointments, QR tracking, office chat, citizen feedback, and analytics reports.
+
+**Default integration branch:** `13.x` on GitHub.
 
 ---
 
@@ -21,6 +23,7 @@ Laravel application for a government e-services platform: citizen portal, office
 ```bash
 git clone https://github.com/georges33tawk24/WebDev2.git
 cd WebDev2
+git checkout 13.x
 composer install
 ```
 
@@ -40,7 +43,15 @@ cat team.env >> .env
 
 Keep the team **`APP_KEY`** in `.env.example` if your group agreed on one shared dev key.
 
-### 3. Database
+### 3. Git hooks (recommended)
+
+Hooks strip AI `Co-authored-by` trailers so commits stay attributed to **your** git user only:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+### 4. Database
 
 #### Option A — MySQL (team default)
 
@@ -77,9 +88,9 @@ Ensure the file exists:
 touch database/database.sqlite
 ```
 
-### 4. Migrations and demo data
+### 5. Migrations and demo data
 
-Creates all tables and seeds **Lebanon-themed demo data** (offices, services, users, ~70 service requests, etc.):
+Creates all tables (including Arabic catalog columns) and seeds **Lebanon-themed demo data** (~160 service requests, 8 municipalities, 23+ services, staff/citizens, appointments, feedback, messages, demo PDFs, etc.):
 
 ```bash
 php artisan migrate --seed
@@ -93,14 +104,14 @@ php artisan migrate:fresh --seed
 
 > Each developer has **their own** database. Git shares **seeders**, not your rows. After clone, everyone runs `migrate --seed` to get the same baseline.
 
-### 5. Frontend build
+### 6. Frontend build
 
 ```bash
 npm install
 npm run build
 ```
 
-### 6. Config cache
+### 7. Config cache
 
 ```bash
 php artisan config:clear
@@ -143,6 +154,16 @@ Open: **http://127.0.0.1:8000**
 
 ---
 
+## Language (English / Arabic)
+
+- Use the **EN | AR** toggle on auth pages and in the top navbar (admin/staff/citizen layouts).
+- Locale is stored in the session (`SetLocale` middleware runs **after** session start).
+- Translation files: `lang/en/ui.php`, `lang/ar/ui.php` (and `lang/ar/entities.php` for seeded fallbacks).
+- Catalog content can be bilingual in the database (`name_ar`, `description_ar`, `municipality_ar`, etc.) — seeded from `database/data/localized_catalog_ar.php`.
+- Arabic mode enables **RTL** layout and localized digits/dates via helpers in `app/helpers.php`.
+
+---
+
 ## Seeded test accounts
 
 All seeded users use password: **`password123`**
@@ -151,11 +172,21 @@ All seeded users use password: **`password123`**
 |------|--------|--------|
 | Admin | `admin@example.com` | Skips 2FA |
 | Staff | `staff@example.com` | Beirut office |
-| Staff | `staff.tripoli@example.com`, `staff.saida@example.com`, … | One per municipality |
+| Staff | `staff.tripoli@example.com`, `staff.saida@example.com`, `staff.baabda@example.com`, … | One per municipality |
 | Citizen | `citizen@example.com` | Has demo ID on file |
 | Citizen | `citizen.karim@example.com`, `citizen.mira@example.com`, … | 20 citizens total |
 
-Demo data is defined in `database/seeders/DemoDataSeeder.php` (8 Lebanese municipalities, 23 services, requests in various statuses).
+Demo data is defined in `database/seeders/DemoDataSeeder.php`.
+
+---
+
+## Main features (by role)
+
+| Area | Highlights |
+|------|----------------|
+| **Citizen** | Unified sidebar layout; browse/apply for services; track requests; **payments** (mock card); **appointments** (saved to DB); office map; **QR code** per request; **chat**; **feedback**; bilingual receipts |
+| **Staff** | Office-scoped requests; status updates with **email alerts**; document download; **catalog** (categories + services for own office); office profile; feedback replies |
+| **Admin** | Offices; categories; services; staff + **create citizen** accounts; **`is_active`** activate/deactivate; citizens list; **analytics/reports** (Chart.js) |
 
 ---
 
@@ -201,10 +232,12 @@ php artisan tinker
 ## Teammate checklist (MySQL)
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/georges33tawk24/WebDev2.git
 cd WebDev2
+git checkout 13.x
 composer install
 cp .env.example .env
+git config core.hooksPath .githooks
 # Edit .env: DB_PASSWORD, paste team.env secrets
 mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS webdev2 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 php artisan migrate --seed
@@ -222,6 +255,9 @@ composer dev:https
 - **OAuth redirect URLs** must match `APP_URL` in `.env` (see `GOOGLE_REDIRECT_URI`, `FACEBOOK_REDIRECT_URI`).
 - **ID upload**: Citizens without a valid ID file are redirected to `/id-upload` after login/2FA. Seeded citizens use a demo ID file under `storage/app/public/ids/`.
 - **Queue worker** must run for 2FA emails (`queue:listen` or included in `composer dev:https`).
+- **Office working hours** in forms are stored as JSON; seeded offices use a structured `days` / `hours` / `note` format.
+- **Payments**: mock card flow in-app; production can use MontyPay Checkout (see team notes) — not wired without merchant API keys.
+- **Demo documents**: citizen uploads use a real demo PDF; staff-generated PDFs are created for approved/completed requests.
 
 ---
 
@@ -231,6 +267,10 @@ composer dev:https
 php artisan test
 ```
 
+Includes locale switching, auth flows, QA smoke tests, and backlog coverage (`LocaleSwitchTest`, `QaSmokeTest`, `BriefBacklogTest` — staff catalog, appointments, status emails, account flags).
+
+After clone, run `php artisan storage:link` once (also runs via `composer setup`) so document downloads work.
+
 ---
 
 ## Project structure (high level)
@@ -238,12 +278,39 @@ php artisan test
 | Area | Path |
 |------|------|
 | Routes | `routes/web.php` |
+| Locale | `app/Http/Middleware/SetLocale.php`, `app/Http/Controllers/LocaleController.php` |
+| Helpers (i18n) | `app/helpers.php` |
 | Auth & OAuth | `app/Http/Controllers/AuthController.php` |
 | Citizen portal | `app/Http/Controllers/Citizen/` |
 | Admin | `app/Http/Controllers/Admin/` |
 | Staff | `app/Http/Controllers/Staff/` |
+| Arabic seed data | `database/data/localized_catalog_ar.php` |
 | Seeders | `database/seeders/DemoDataSeeder.php` |
 | Main layout | `resources/views/layouts/admin.blade.php` |
+| UI components | `resources/views/components/` (`locale-switcher`, `form-page`, …) |
+
+---
+
+## Git workflow
+
+Work on branch **`13.x`** (default on GitHub):
+
+```bash
+git checkout 13.x
+git pull origin 13.x
+```
+
+Configure hooks so commits stay under **your** git user only (no AI `Co-authored-by`):
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Push:
+
+```bash
+git push origin 13.x
+```
 
 ---
 

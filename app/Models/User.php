@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Storage;
     'name',
     'email',
     'email_verified_at',
+    'is_active',
     'password',
     'role_id',
     'office_id',
@@ -31,6 +32,11 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
     /**
      * Get the attributes that should be cast.
      *
@@ -40,9 +46,10 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_active' => 'boolean',
             'password' => 'hashed',
             'date_of_birth' => 'date',
-            'phone' => 'string',
+            'phone' => 'encrypted',
             'id_document_path' => 'string',
             'two_factor_verified_at' => 'datetime',
         ];

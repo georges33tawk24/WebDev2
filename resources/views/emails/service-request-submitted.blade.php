@@ -1,24 +1,24 @@
 <!DOCTYPE html>
-<html>
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
-    <title>Service Request Submitted</title>
+    <title>{{ __('ui.mail.request_submitted_title') }}</title>
 </head>
 <body style="font-family: Arial, sans-serif; color:#111827;">
-    <h2>Service Request Submitted Successfully</h2>
+    <h2>{{ __('ui.mail.request_submitted_title') }}</h2>
 
-    <p>Hello {{ $serviceRequest->citizen->name ?? 'Citizen' }},</p>
+    <p>{{ __('ui.mail.request_submitted_greeting', ['name' => $serviceRequest->citizen->name ?? __('ui.citizen.portal')]) }}</p>
 
-    <p>Your service request has been submitted successfully.</p>
+    <p>{{ __('ui.mail.request_submitted_body') }}</p>
 
-    <p><strong>Reference Number:</strong> {{ $serviceRequest->reference_number }}</p>
-    <p><strong>Service:</strong> {{ $serviceRequest->service->name ?? 'N/A' }}</p>
-    <p><strong>Office:</strong> {{ $serviceRequest->office->name ?? 'N/A' }}</p>
-    <p><strong>Status:</strong> {{ ucfirst($serviceRequest->status) }}</p>
-    <p><strong>Submitted At:</strong> {{ optional($serviceRequest->created_at)->format('d M Y - h:i A') }}</p>
+    <p><strong>{{ __('ui.citizen.reference_colon') }}</strong> {{ $serviceRequest->reference_number }}</p>
+    <p><strong>{{ __('ui.table.service') }}:</strong> {{ $serviceRequest->service?->localized('name') ?? __('ui.na') }}</p>
+    <p><strong>{{ __('ui.citizen.office_colon') }}</strong> {{ $serviceRequest->office?->localized('name') ?? __('ui.na') }}</p>
+    <p><strong>{{ __('ui.citizen.status_colon') }}</strong> {{ __('ui.status.'.$serviceRequest->status) }}</p>
+    <p><strong>{{ __('ui.citizen.submitted_colon') }}</strong> {{ $serviceRequest->created_at ? localized_datetime($serviceRequest->created_at) : __('ui.na') }}</p>
 
-    <p>You can track your request from your citizen dashboard.</p>
+    <p>{{ __('ui.mail.track_from_dashboard') }}</p>
 
-    <p>Thank you,<br>{{ config('app.name') }}</p>
+    <p>{{ __('ui.mail.thank_you') }}<br>{{ config('app.name') }}</p>
 </body>
 </html>

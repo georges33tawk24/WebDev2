@@ -21,7 +21,7 @@ class EnsureRole
             }
 
             return redirect()->route($targetRoute)
-                ->withErrors(['role' => 'You are not authorized to access that page.']);
+                ->withErrors(['role' => __('ui.flash.unauthorized_role')]);
         }
 
         return $next($request);

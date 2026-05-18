@@ -1,13 +1,13 @@
 @extends('layouts.admin')
 
-@section('title', 'Analytics & Reports')
-@section('page-title', 'Analytics & Reports')
+@section('title', __('ui.admin.reports_title'))
+@section('page-title', __('ui.admin.reports_title'))
 
 @section('content')
 <div class="page-header">
     <div>
-        <div class="page-title">Analytics & Reports</div>
-        <div class="page-subtitle">Platform overview and statistics</div>
+        <div class="page-title">{{ __('ui.admin.reports_title') }}</div>
+        <div class="page-subtitle">{{ __('ui.admin.reports_platform_sub') }}</div>
     </div>
 </div>
 
@@ -15,69 +15,73 @@
 <div class="stat-grid">
     <div class="stat-card">
         
-        <div class="stat-label">Total Offices</div>
-        <div class="stat-number">{{ $totalOffices }}</div>
+        <div class="stat-label">{{ __('ui.admin.total_offices') }}</div>
+        <div class="stat-number">{{ localized_number($totalOffices) }}</div>
     </div>
     <div class="stat-card">
         
-        <div class="stat-label">Total Requests</div>
-        <div class="stat-number">{{ $totalRequests }}</div>
+        <div class="stat-label">{{ __('ui.admin.total_requests') }}</div>
+        <div class="stat-number">{{ localized_number($totalRequests) }}</div>
     </div>
     <div class="stat-card">
         
-        <div class="stat-label">Total Citizens</div>
-        <div class="stat-number">{{ $totalCitizens }}</div>
+        <div class="stat-label">{{ __('ui.admin.total_citizens') }}</div>
+        <div class="stat-number">{{ localized_number($totalCitizens) }}</div>
     </div>
     <div class="stat-card">
         
-        <div class="stat-label">Total Revenue</div>
-        <div class="stat-number">${{ number_format($totalRevenue, 2) }}</div>
+        <div class="stat-label">{{ __('ui.admin.total_revenue') }}</div>
+        <div class="stat-number">{{ localized_money($totalRevenue) }}</div>
     </div>
 </div>
 
 {{-- Charts Row --}}
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px;">
+<div class="reports-charts-grid">
 
-    {{-- Requests by Status Chart --}}
+    {{-- {{ __('ui.admin.requests_by_status') }} Chart --}}
     <div class="card">
-        <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:16px;">Requests by Status</div>
-        <canvas id="statusChart" height="200"></canvas>
+        <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:16px;">{{ __('ui.admin.requests_by_status') }}</div>
+        <div class="report-chart">
+            <canvas id="statusChart"></canvas>
+        </div>
     </div>
 
     {{-- Monthly Requests Chart --}}
     <div class="card">
-        <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:16px;">Monthly Requests (Last 6 Months)</div>
-        <canvas id="monthlyChart" height="200"></canvas>
+        <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:16px;">{{ __('ui.admin.monthly_requests_6') }}</div>
+        <div class="report-chart">
+            <canvas id="monthlyChart"></canvas>
+        </div>
     </div>
 
 </div>
 
-{{-- Requests per Office --}}
+{{-- {{ __('ui.admin.requests_per_office') }} --}}
 <div class="card" style="margin-bottom:24px;">
-    <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:16px;">Requests per Office</div>
+    <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:16px;">{{ __('ui.admin.requests_per_office') }}</div>
     <div class="table-wrapper">
-        <table>
+        <table class="data-table">
             <thead>
                 <tr>
-                    <th>Office Name</th>
-                    <th>Municipality</th>
-                    <th>Total Requests</th>
+                    <th class="col-primary">{{ __('ui.table.office_name') }}</th>
+                    <th class="col-secondary">{{ __('ui.table.municipality') }}</th>
+                    <th class="col-count">{{ __('ui.admin.total_requests') }}</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($requestsPerOffice as $office)
                 <tr>
-                    <td style="font-weight:600; color:#111827;">{{ $office->name }}</td>
-                    <td>{{ $office->municipality ?? '—' }}</td>
-                    <td>
-                        <span class="badge" style="background:#dbeafe; color:#1e40af;">
-                            {{ $office->service_requests_count }}
+                    <td class="col-primary" style="font-weight:600; color:#111827;">{{ $office->localized('name') }}</td>
+                    <td class="col-secondary">{{ $office->localized('municipality') ?? __('ui.na') }}</td>
+                    <td class="col-count">
+                        <span class="count-badge count-badge--blue">
+                            {{ localized_number($office->service_requests_count) }}
                         </span>
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="3" style="text-align:center; color:#6b7280; padding:32px;">No data yet.</td>
+                    <td colspan="3" style="text-align:center; color:#6b7280; padding:32px;">{{ __('ui.admin.no_data_yet') }}</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -85,32 +89,32 @@
     </div>
 </div>
 
-{{-- Requests per Service --}}
+{{-- {{ __('ui.admin.requests_per_service') }} --}}
 <div class="card">
-    <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:16px;">Requests per Service</div>
+    <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:16px;">{{ __('ui.admin.requests_per_service') }}</div>
     <div class="table-wrapper">
-        <table>
+        <table class="data-table">
             <thead>
                 <tr>
-                    <th>Service Name</th>
-                    <th>Price</th>
-                    <th>Total Requests</th>
+                    <th class="col-primary">{{ __('ui.admin.service_name') }}</th>
+                    <th class="col-price">{{ __('ui.table.price') }}</th>
+                    <th class="col-count">{{ __('ui.admin.total_requests') }}</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($requestsPerService as $service)
                 <tr>
-                    <td style="font-weight:600; color:#111827;">{{ $service->name }}</td>
-                    <td>${{ number_format($service->price, 2) }}</td>
-                    <td>
-                        <span class="badge" style="background:#d1fae5; color:#065f46;">
-                            {{ $service->service_requests_count }}
+                    <td class="col-primary" style="font-weight:600; color:#111827;">{{ $service->localized('name') }}</td>
+                    <td class="col-price">{{ localized_money($service->price) }}</td>
+                    <td class="col-count">
+                        <span class="count-badge count-badge--green">
+                            {{ localized_number($service->service_requests_count) }}
                         </span>
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="3" style="text-align:center; color:#6b7280; padding:32px;">No data yet.</td>
+                    <td colspan="3" style="text-align:center; color:#6b7280; padding:32px;">{{ __('ui.admin.no_data_yet') }}</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -118,54 +122,8 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // Requests by Status Chart
-    const statusCtx = document.getElementById('statusChart').getContext('2d');
-    new Chart(statusCtx, {
-        type: 'doughnut',
-        data: {
-            labels: {!! json_encode($requestsByStatus->pluck('status')->map(fn($s) => ucfirst(str_replace('_', ' ', $s)))) !!},
-            datasets: [{
-                data: {!! json_encode($requestsByStatus->pluck('total')) !!},
-                backgroundColor: ['#fef3c7', '#dbeafe', '#ffedd5', '#d1fae5', '#fee2e2', '#ede9fe'],
-                borderColor: ['#92400e', '#1e40af', '#9a3412', '#065f46', '#991b1b', '#5b21b6'],
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { position: 'bottom' }
-            }
-        }
-    });
-
-    
-    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-    new Chart(monthlyCtx, {
-        type: 'bar',
-        data: {
-            labels: {!! json_encode($monthlyRequests->pluck('month')) !!},
-            datasets: [{
-                label: 'Requests',
-                data: {!! json_encode($monthlyRequests->pluck('total')) !!},
-                backgroundColor: '#1a56db',
-                borderRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1 }
-                }
-            }
-        }
-    });
-</script>
+@push('scripts')
+    <script type="application/json" id="report-chart-data">{!! json_encode($chartData) !!}</script>
+    @vite('resources/js/admin-reports.js')
+@endpush
 @endsection

@@ -1,4 +1,4 @@
-<x-layouts.auth-flow title="Protected — WebDev2">
+<x-layouts.auth-flow title="{{ __('ui.auth.account_protected') }} — {{ __('ui.app_name') }}">
     <div class="success-mark-wrap" aria-hidden="true">
         <span class="success-ring"></span>
         <span class="success-dot success-dot--1"></span>
@@ -12,8 +12,8 @@
         </span>
     </div>
 
-    <h1 class="twofa-title twofa-title--success">Your account is now protected!</h1>
-    <p class="twofa-sub">You can access your dashboard with two-factor verification enabled.</p>
+    <h1 class="twofa-title twofa-title--success">{{ __('ui.auth.account_protected') }}</h1>
+    <p class="twofa-sub">{{ __('ui.auth.account_protected_sub') }}</p>
 
-    <a href="{{ route($continueRoute) }}" class="btn-primary btn-block success-cta">Continue</a>
+    <a href="{{ route($continueRoute) }}" class="btn-primary btn-block success-cta">{{ __('ui.auth.continue') }}</a>
 </x-layouts.auth-flow>

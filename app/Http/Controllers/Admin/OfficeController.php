@@ -22,18 +22,25 @@ class OfficeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'           => ['required', 'string', 'max:255'],
-            'municipality'   => ['nullable', 'string', 'max:255'],
-            'address'        => ['nullable', 'string', 'max:255'],
-            'contact_number' => ['nullable', 'string', 'max:50'],
-            'contact_email'  => ['nullable', 'email', 'max:255'],
-            'working_hours'  => ['nullable', 'string'],
+            'name'             => ['required', 'string', 'max:255'],
+            'name_ar'          => ['nullable', 'string', 'max:255'],
+            'municipality'     => ['nullable', 'string', 'max:255'],
+            'municipality_ar'  => ['nullable', 'string', 'max:255'],
+            'address'          => ['nullable', 'string', 'max:255'],
+            'address_ar'       => ['nullable', 'string', 'max:255'],
+            'contact_number'   => ['nullable', 'string', 'max:50'],
+            'contact_email'    => ['nullable', 'email', 'max:255'],
+            'working_hours'    => ['nullable', 'string'],
         ]);
+
+        if (array_key_exists('working_hours', $validated)) {
+            $validated['working_hours'] = parse_working_hours_input($validated['working_hours']);
+        }
 
         Office::create($validated);
 
         return redirect()->route('admin.offices.index')
-            ->with('success', 'Office created successfully!');
+            ->with('success', __('ui.flash.office_created'));
     }
 
     public function edit(Office $office)
@@ -44,24 +51,31 @@ class OfficeController extends Controller
     public function update(Request $request, Office $office)
     {
         $validated = $request->validate([
-            'name'           => ['required', 'string', 'max:255'],
-            'municipality'   => ['nullable', 'string', 'max:255'],
-            'address'        => ['nullable', 'string', 'max:255'],
-            'contact_number' => ['nullable', 'string', 'max:50'],
-            'contact_email'  => ['nullable', 'email', 'max:255'],
-            'working_hours'  => ['nullable', 'string'],
+            'name'             => ['required', 'string', 'max:255'],
+            'name_ar'          => ['nullable', 'string', 'max:255'],
+            'municipality'     => ['nullable', 'string', 'max:255'],
+            'municipality_ar'  => ['nullable', 'string', 'max:255'],
+            'address'          => ['nullable', 'string', 'max:255'],
+            'address_ar'       => ['nullable', 'string', 'max:255'],
+            'contact_number'   => ['nullable', 'string', 'max:50'],
+            'contact_email'    => ['nullable', 'email', 'max:255'],
+            'working_hours'    => ['nullable', 'string'],
         ]);
+
+        if (array_key_exists('working_hours', $validated)) {
+            $validated['working_hours'] = parse_working_hours_input($validated['working_hours']);
+        }
 
         $office->update($validated);
 
         return redirect()->route('admin.offices.index')
-            ->with('success', 'Office updated successfully!');
+            ->with('success', __('ui.flash.office_updated'));
     }
 
     public function destroy(Office $office)
     {
         $office->delete();
         return redirect()->route('admin.offices.index')
-            ->with('success', 'Office deleted successfully!');
+            ->with('success', __('ui.flash.office_deleted'));
     }
 }

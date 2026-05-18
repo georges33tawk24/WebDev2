@@ -1,16 +1,16 @@
 @extends('layouts.admin')
 
-@section('title', 'Government Offices')
-@section('page-title', 'Government Offices')
+@section('title', __('ui.admin.offices_title'))
+@section('page-title', __('ui.admin.offices_title'))
 
 @section('content')
 <div class="page-header">
     <div>
-        <div class="page-title">Government Offices</div>
-        <div class="page-subtitle">Manage all government offices on the platform</div>
+        <div class="page-title">{{ __('ui.admin.offices_title') }}</div>
+        <div class="page-subtitle">{{ __('ui.admin.offices_manage_sub') }}</div>
     </div>
     <a href="{{ route('admin.offices.create') }}" class="btn-primary">
-         Add New Office
+         {{ __('ui.admin.add_office') }}
     </a>
 </div>
 
@@ -18,33 +18,33 @@
     <table>
         <thead>
             <tr>
-                <th>Office Name</th>
-                <th>Municipality</th>
-                <th>Contact Number</th>
-                <th>Contact Email</th>
-                <th>Actions</th>
+                <th>{{ __('ui.table.office_name') }}</th>
+                <th>{{ __('ui.table.municipality') }}</th>
+                <th>{{ __('ui.admin.contact_number') }}</th>
+                <th>{{ __('ui.admin.contact_email') }}</th>
+                <th>{{ __('ui.actions') }}</th>
             </tr>
         </thead>
         <tbody>
             @forelse($offices as $office)
             <tr>
-                <td style="font-weight:600; color:#111827;">{{ $office->name }}</td>
-                <td>{{ $office->municipality ?? '—' }}</td>
-                <td>{{ $office->contact_number ?? '—' }}</td>
-                <td>{{ $office->contact_email ?? '—' }}</td>
+                <td style="font-weight:600; color:#111827;">{{ $office->localized('name') }}</td>
+                <td>{{ $office->municipality ?? __('ui.na') }}</td>
+                <td>{{ $office->contact_number ?? __('ui.na') }}</td>
+                <td>{{ $office->contact_email ?? __('ui.na') }}</td>
                 <td style="display:flex; gap:8px;">
-                    <a href="{{ route('admin.offices.edit', $office) }}" class="btn-secondary" style="padding:6px 12px; font-size:12px;">Edit</a>
-                    <form method="POST" action="{{ route('admin.offices.destroy', $office) }}" onsubmit="return confirm('Delete this office?')">
+                    <a href="{{ route('admin.offices.edit', $office) }}" class="btn-secondary" style="padding:6px 12px; font-size:12px;">{{ __('ui.edit') }}</a>
+                    <form method="POST" action="{{ route('admin.offices.destroy', $office) }}" onsubmit="return confirm(@js(__('ui.admin.confirm_delete_office')))">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn-danger">Delete</button>
+                        <button type="submit" class="btn-danger">{{ __('ui.delete') }}</button>
                     </form>
                 </td>
             </tr>
             @empty
             <tr>
                 <td colspan="5" style="text-align:center; color:#6b7280; padding:32px;">
-                    No offices yet. <a href="{{ route('admin.offices.create') }}" style="color:#1a56db;">Create one →</a>
+                    {{ __('ui.admin.no_offices') }} <a href="{{ route('admin.offices.create') }}" style="color:#1a56db;">{{ __('ui.admin.create_office_link') }}</a>
                 </td>
             </tr>
             @endforelse

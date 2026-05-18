@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Payments')
-@section('page-title', 'Payments')
+@section('title', __('ui.citizen.payments_title'))
+@section('page-title', __('ui.citizen.payments_title'))
 
 @section('content')
 <div class="card">
@@ -11,6 +11,8 @@
             <p style="color:#6b7280; line-height:1.7;">
                 Complete service payments using either traditional card checkout or the simulated crypto payment workflow.
             </p>
+            <h1 style="font-size:28px; font-weight:700;">{{ __('ui.citizen.payments_title') }}</h1>
+            <p style="color:#6b7280;">{{ __('ui.citizen.manage_payments_sub') }}</p>
         </div>
     </div>
 
@@ -47,6 +49,20 @@
 
                     <p style="color:#111827; font-weight:700; margin-bottom:12px;">
                         Amount: ${{ number_format($request->service->price ?? 0, 2) }}
+        <div style="border:1px solid #e5e7eb; border-radius:14px; padding:20px; margin-bottom:18px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h2 style="font-size:20px; font-weight:700;">
+                        {{ $request->service?->localized('name') ?? __('ui.citizen.service_removed') }}
+                    </h2>
+
+                    <p style="color:#6b7280;">
+                        {{ __('ui.citizen.ref') }}: {{ $request->reference_number }}
+                    </p>
+
+                    <p style="color:#6b7280;">
+                        {{ __('ui.table.price') }}:
+                        {{ localized_money($request->service->price ?? 0) }}
                     </p>
 
                     @if($paidPayment)
@@ -91,6 +107,11 @@
                         </a>
                     @endif
                 </div>
+                <a href="{{ route('citizen.payments.show', $request) }}"
+                   class="btn-primary"
+                   style="text-decoration:none;">
+                    {{ __('ui.citizen.pay_now') }}
+                </a>
             </div>
 
             @if($pendingCrypto)
@@ -105,6 +126,8 @@
         <div style="text-align:center; padding:60px 20px; color:#6b7280;">
             <h2 style="font-size:24px; margin-bottom:10px;">No Pending Payments</h2>
             <p>All available service payments are completed or no payable requests exist yet.</p>
+        <div style="text-align:center; padding:40px; color:#6b7280;">
+            {{ __('ui.citizen.no_payments') }}
         </div>
     @endforelse
 </div>

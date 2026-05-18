@@ -90,7 +90,7 @@ touch database/database.sqlite
 
 ### 5. Migrations and demo data
 
-Creates all tables (including Arabic catalog columns) and seeds **Lebanon-themed demo data** (8 municipalities, 23 services, staff/citizens, ~70 service requests, feedback, messages, etc.):
+Creates all tables (including Arabic catalog columns) and seeds **Lebanon-themed demo data** (~160 service requests, 8 municipalities, 23+ services, staff/citizens, appointments, feedback, messages, demo PDFs, etc.):
 
 ```bash
 php artisan migrate --seed
@@ -184,9 +184,9 @@ Demo data is defined in `database/seeders/DemoDataSeeder.php`.
 
 | Area | Highlights |
 |------|----------------|
-| **Citizen** | Browse/apply for services, track requests, payments, appointments, office map, **QR code** per request, **chat** with office, **feedback** after completion |
-| **Staff** | Dashboard, request status updates, document upload, **office profile** (map pin, working hours), **feedback replies** (public/private) |
-| **Admin** | Offices, categories, services (with optional Arabic fields), staff accounts, citizens list, **analytics/reports** |
+| **Citizen** | Unified sidebar layout; browse/apply for services; track requests; **payments** (mock card); **appointments** (saved to DB); office map; **QR code** per request; **chat**; **feedback**; bilingual receipts |
+| **Staff** | Office-scoped requests; status updates with **email alerts**; document download; **catalog** (categories + services for own office); office profile; feedback replies |
+| **Admin** | Offices; categories; services; staff + **create citizen** accounts; **`is_active`** activate/deactivate; citizens list; **analytics/reports** (Chart.js) |
 
 ---
 
@@ -256,6 +256,8 @@ composer dev:https
 - **ID upload**: Citizens without a valid ID file are redirected to `/id-upload` after login/2FA. Seeded citizens use a demo ID file under `storage/app/public/ids/`.
 - **Queue worker** must run for 2FA emails (`queue:listen` or included in `composer dev:https`).
 - **Office working hours** in forms are stored as JSON; seeded offices use a structured `days` / `hours` / `note` format.
+- **Payments**: mock card flow in-app; production can use MontyPay Checkout (see team notes) — not wired without merchant API keys.
+- **Demo documents**: citizen uploads use a real demo PDF; staff-generated PDFs are created for approved/completed requests.
 
 ---
 
@@ -265,7 +267,9 @@ composer dev:https
 php artisan test
 ```
 
-Includes locale switching, auth flows, and QA smoke tests (`tests/Feature/LocaleSwitchTest.php`, `tests/Feature/QaSmokeTest.php`).
+Includes locale switching, auth flows, QA smoke tests, and backlog coverage (`LocaleSwitchTest`, `QaSmokeTest`, `BriefBacklogTest` — staff catalog, appointments, status emails, account flags).
+
+After clone, run `php artisan storage:link` once (also runs via `composer setup`) so document downloads work.
 
 ---
 
@@ -287,15 +291,26 @@ Includes locale switching, auth flows, and QA smoke tests (`tests/Feature/Locale
 
 ---
 
-## Pushing changes
+## Git workflow
 
-Work on branch **`13.x`** and push to GitHub:
+Work on branch **`13.x`** (default on GitHub):
+
+```bash
+git checkout 13.x
+git pull origin 13.x
+```
+
+Configure hooks so commits stay under **your** git user only (no AI `Co-authored-by`):
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Push:
 
 ```bash
 git push origin 13.x
 ```
-
-Commit messages must not include AI `Co-authored-by` lines (enforced by `.githooks` when configured).
 
 ---
 

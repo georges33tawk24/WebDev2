@@ -4,17 +4,18 @@
 @section('page-title', __('ui.admin.create_category'))
 
 @section('content')
+@php($catalogPrefix = $catalogPrefix ?? 'admin')
 <x-form-page>
 <div class="page-header">
     <div>
         <div class="page-title">{{ __('ui.admin.create_category') }}</div>
         <div class="page-subtitle">{{ __('ui.admin.create_category_sub') }}</div>
     </div>
-    <a href="{{ route('admin.categories.index') }}" class="btn-secondary">{{ __('ui.admin.back_categories') }}</a>
+    <a href="{{ route($catalogPrefix . '.categories.index') }}" class="btn-secondary">{{ __('ui.admin.back_categories') }}</a>
 </div>
 
 <div class="card">
-    <form method="POST" action="{{ route('admin.categories.store') }}">
+    <form method="POST" action="{{ route($catalogPrefix . '.categories.store') }}">
         @csrf
 
         <div class="form-group">
@@ -43,7 +44,7 @@
 
         <div class="form-actions">
             <button type="submit" class="btn-primary">{{ __('ui.admin.create_category_btn') }}</button>
-            <a href="{{ route('admin.categories.index') }}" class="btn-secondary">{{ __('ui.cancel') }}</a>
+            <a href="{{ route($catalogPrefix . '.categories.index') }}" class="btn-secondary">{{ __('ui.cancel') }}</a>
         </div>
     </form>
 </div>

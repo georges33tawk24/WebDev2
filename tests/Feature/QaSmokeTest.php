@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Document;
 use App\Models\Office;
 use App\Models\Role;
 use App\Models\Service;
@@ -140,6 +141,16 @@ class QaSmokeTest extends TestCase
             ->assertSee(__('ui.nav.dashboard', [], 'ar'), false);
     }
 
+    public function test_admin_reports_page_includes_chart_data_and_bundle(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('admin.reports.index'))
+            ->assertOk()
+            ->assertSee('id="statusChart"', false)
+            ->assertSee('id="report-chart-data"', false)
+            ->assertSee('admin-reports', false);
+    }
+
     public function test_locale_switch_route_works_from_citizen_area(): void
     {
         $this->actingAs($this->citizen)
@@ -157,5 +168,81 @@ class QaSmokeTest extends TestCase
             ->get(route('citizen.services'))
             ->assertOk()
             ->assertSee('مكتب اختبار', false);
+    }
+
+    public function test_staff_can_download_document_for_own_office_request(): void
+    {
+        $staffRole = Role::query()->create(['name' => 'Office Staff', 'slug' => 'office_staff']);
+        $office = Office::query()->first();
+        $service = Service::query()->first();
+
+        $staff = User::query()->create([
+            'name' => 'QA Staff',
+            'email' => 'staff-qa@example.com',
+            'password' => Hash::make('password123'),
+            'role_id' => $staffRole->id,
+            'office_id' => $office->id,
+            'email_verified_at' => now(),
+            'two_factor_verified_at' => now(),
+        ]);
+
+        $serviceRequest = ServiceRequest::query()->first();
+
+        Storage::disk('public')->put('docs/qa-sample.pdf', '%PDF-1.4 demo');
+
+        $document = Document::query()->create([
+            'service_request_id' => $serviceRequest->id,
+            'uploaded_by' => $staff->id,
+            'type' => 'response',
+            'file_path' => 'docs/qa-sample.pdf',
+            'original_name' => 'qa-sample.pdf',
+            'mime_type' => 'application/pdf',
+            'size' => 128,
+        ]);
+
+        $this->actingAs($staff)
+            ->get(route('staff.requests.documents.download', [$serviceRequest, $document]))
+            ->assertOk()
+            ->assertHeader('content-disposition');
+    }
+
+    public function test_staff_cannot_download_document_for_another_office_request(): void
+    {
+        $staffRole = Role::query()->create(['name' => 'Office Staff', 'slug' => 'office_staff']);
+        $otherOffice = Office::query()->create([
+            'name' => 'Other Office',
+            'municipality' => 'Tripoli',
+        ]);
+
+        $staff = User::query()->create([
+            'name' => 'Other Staff',
+            'email' => 'staff-other@example.com',
+            'password' => Hash::make('password123'),
+            'role_id' => $staffRole->id,
+            'office_id' => Office::query()->first()->id,
+            'email_verified_at' => now(),
+            'two_factor_verified_at' => now(),
+        ]);
+
+        $foreignRequest = ServiceRequest::query()->create([
+            'reference_number' => (string) \Illuminate\Support\Str::uuid(),
+            'citizen_id' => $this->citizen->id,
+            'service_id' => Service::query()->first()->id,
+            'office_id' => $otherOffice->id,
+            'status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        $document = Document::query()->create([
+            'service_request_id' => $foreignRequest->id,
+            'uploaded_by' => $staff->id,
+            'type' => 'required',
+            'file_path' => 'ids/test.png',
+            'original_name' => 'test.pdf',
+        ]);
+
+        $this->actingAs($staff)
+            ->get(route('staff.requests.documents.download', [$foreignRequest, $document]))
+            ->assertNotFound();
     }
 }

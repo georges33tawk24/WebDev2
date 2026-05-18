@@ -58,6 +58,7 @@ class UserController extends Controller
             'role_id' => $staffRole->id,
             'office_id' => $validated['office_id'],
             'email_verified_at' => now(),
+            'is_active' => true,
         ]);
 
         return redirect()
@@ -65,10 +66,44 @@ class UserController extends Controller
             ->with('success', __('ui.flash.staff_created'));
     }
 
+    public function createCitizen(): View
+    {
+        return view('admin.users.create-citizen');
+    }
+
+    public function storeCitizen(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'password' => ['required', 'confirmed', 'min:8'],
+        ]);
+
+        $citizenRole = Role::query()->firstOrCreate(
+            ['slug' => 'citizen'],
+            ['name' => 'Citizen']
+        );
+
+        User::query()->create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'] ?? null,
+            'password' => Hash::make($validated['password']),
+            'role_id' => $citizenRole->id,
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+
+        return redirect()
+            ->route('admin.citizens.index')
+            ->with('success', __('ui.flash.citizen_created'));
+    }
+
     public function toggleStatus(User $user)
     {
         $user->update([
-            'email_verified_at' => $user->email_verified_at ? null : now(),
+            'is_active' => ! $user->is_active,
         ]);
 
         return back()->with('success', __('ui.flash.user_status_updated'));

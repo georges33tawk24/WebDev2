@@ -36,18 +36,22 @@
 </div>
 
 {{-- Charts Row --}}
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px;">
+<div class="reports-charts-grid">
 
     {{-- {{ __('ui.admin.requests_by_status') }} Chart --}}
     <div class="card">
         <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:16px;">{{ __('ui.admin.requests_by_status') }}</div>
-        <canvas id="statusChart" height="200"></canvas>
+        <div class="report-chart">
+            <canvas id="statusChart"></canvas>
+        </div>
     </div>
 
     {{-- Monthly Requests Chart --}}
     <div class="card">
         <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:16px;">{{ __('ui.admin.monthly_requests_6') }}</div>
-        <canvas id="monthlyChart" height="200"></canvas>
+        <div class="report-chart">
+            <canvas id="monthlyChart"></canvas>
+        </div>
     </div>
 
 </div>
@@ -118,54 +122,8 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // {{ __('ui.admin.requests_by_status') }} Chart
-    const statusCtx = document.getElementById('statusChart').getContext('2d');
-    new Chart(statusCtx, {
-        type: 'doughnut',
-        data: {
-            labels: {!! json_encode($requestsByStatus->pluck('status')->map(fn($s) => __('ui.status.'.$s))) !!},
-            datasets: [{
-                data: {!! json_encode($requestsByStatus->pluck('total')) !!},
-                backgroundColor: ['#fef3c7', '#dbeafe', '#ffedd5', '#d1fae5', '#fee2e2', '#ede9fe'],
-                borderColor: ['#92400e', '#1e40af', '#9a3412', '#065f46', '#991b1b', '#5b21b6'],
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { position: 'bottom' }
-            }
-        }
-    });
-
-    
-    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-    new Chart(monthlyCtx, {
-        type: 'bar',
-        data: {
-            labels: {!! json_encode($monthlyRequests->pluck('month')) !!},
-            datasets: [{
-                label: @js(__('ui.admin.total_requests')),
-                data: {!! json_encode($monthlyRequests->pluck('total')) !!},
-                backgroundColor: '#1a56db',
-                borderRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1 }
-                }
-            }
-        }
-    });
-</script>
+@push('scripts')
+    <script type="application/json" id="report-chart-data">{!! json_encode($chartData) !!}</script>
+    @vite('resources/js/admin-reports.js')
+@endpush
 @endsection

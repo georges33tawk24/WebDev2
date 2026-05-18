@@ -70,6 +70,8 @@ class AuthController extends Controller
             'phone' => $validated['phone'] ?? null,
             'id_document_path' => $idPath,
             'date_of_birth' => $finalDob,
+            'email_verified_at' => now(),
+            'is_active' => true,
         ]);
 
         return redirect()->route('login')->with('status', __('ui.flash.registration_success_login'));
@@ -95,8 +97,15 @@ class AuthController extends Controller
             return back()->withErrors(['email' => __('ui.flash.invalid_credentials')])->onlyInput('email');
         }
 
-        RateLimiter::clear($throttleKey);
         $user = $request->user();
+
+        if ($user->is_active === false) {
+            Auth::logout();
+
+            return back()->withErrors(['email' => __('ui.flash.account_deactivated')])->onlyInput('email');
+        }
+
+        RateLimiter::clear($throttleKey);
         $request->session()->regenerate();
 
         if ($this->roleSkipsTwoFactor($user)) {

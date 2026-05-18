@@ -14,6 +14,24 @@
         </div>
     @endif
 
+    @if($bookedAppointments->isNotEmpty())
+        <h2 style="font-size:18px; font-weight:700; margin-bottom:12px;">{{ __('ui.citizen.upcoming_appointments') }}</h2>
+        <div style="margin-bottom:28px; display:flex; flex-direction:column; gap:12px;">
+            @foreach($bookedAppointments as $appointment)
+                <div style="border:1px solid #e5e7eb; border-radius:12px; padding:16px;">
+                    <div style="font-weight:600;">{{ $appointment->office?->localized('name') }}</div>
+                    <div style="color:#6b7280; font-size:14px; margin-top:4px;">
+                        {{ localized_datetime($appointment->starts_at) }}
+                    </div>
+                    @if($appointment->notes)
+                        <p style="margin-top:8px; font-size:14px;">{{ $appointment->notes }}</p>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    @endif
+
+    <h2 style="font-size:18px; font-weight:700; margin-bottom:12px;">{{ __('ui.citizen.book_new_appointment') }}</h2>
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px;">
         @forelse($offices as $office)
             <div style="border:1px solid #e5e7eb; border-radius:14px; padding:20px;">

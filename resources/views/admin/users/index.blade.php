@@ -38,7 +38,7 @@
                 </td>
                 <td style="color:#6b7280;">{{ $user->office?->localized('name') ?? __('ui.na') }}</td>
                 <td>
-                    @if($user->email_verified_at)
+                    @if($user->is_active)
                         <span class="badge badge-active">{{ __('ui.active') }}</span>
                     @else
                         <span class="badge badge-inactive">{{ __('ui.inactive') }}</span>
@@ -49,8 +49,8 @@
                     <form method="POST" action="{{ route('admin.users.toggle', $user) }}">
                         @csrf
                         @method('PATCH')
-                        <button type="submit" class="{{ $user->email_verified_at ? 'btn-danger' : 'btn-primary' }}" style="padding:6px 12px; font-size:12px;">
-                            {{ $user->email_verified_at ? __('ui.admin.deactivate') : __('ui.admin.activate') }}
+                        <button type="submit" class="{{ $user->is_active ? 'btn-danger' : 'btn-primary' }}" style="padding:6px 12px; font-size:12px;">
+                            {{ $user->is_active ? __('ui.admin.deactivate') : __('ui.admin.activate') }}
                         </button>
                     </form>
                 </td>

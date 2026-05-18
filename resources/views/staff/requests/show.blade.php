@@ -64,7 +64,7 @@
                     <div style="font-size:14px; font-weight:500; color:#111827;">{{ $document->original_name }}</div>
                     <div style="font-size:12px; color:#6b7280;">{{ ucfirst($document->type) }} • {{ localized_digits(__('ui.staff.file_size_kb', ['size' => localized_number($document->size / 1024, 1)])) }}</div>
                 </div>
-                <a href="{{ Storage::url($document->file_path) }}" target="_blank" class="btn-secondary" style="padding:6px 12px; font-size:12px;">{{ __('ui.download') }}</a>
+                <a href="{{ route('staff.requests.documents.download', [$serviceRequest, $document]) }}" class="btn-secondary" style="padding:6px 12px; font-size:12px;">{{ __('ui.download') }}</a>
             </div>
             @empty
             <p style="color:#6b7280; font-size:14px;">{{ __('ui.staff.no_documents') }}</p>

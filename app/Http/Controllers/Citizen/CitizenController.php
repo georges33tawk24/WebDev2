@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Citizen;
 
+use App\Models\Appointment;
 use App\Models\Message;
+use App\Models\Notification;
 use App\Models\User;
+use Carbon\Carbon;
 use App\Mail\ServiceRequestSubmitted;
 use Illuminate\Support\Facades\Mail;
 use App\Models\Feedback;
@@ -331,7 +334,15 @@ public function appointments()
 {
     $offices = Office::orderBy('name')->get();
 
-    return view('citizen.appointments', compact('offices'));
+    $bookedAppointments = Appointment::query()
+        ->with('office')
+        ->where('citizen_id', Auth::id())
+        ->where('status', 'scheduled')
+        ->where('starts_at', '>=', now())
+        ->orderBy('starts_at')
+        ->get();
+
+    return view('citizen.appointments', compact('offices', 'bookedAppointments'));
 }
 
 public function createAppointment(Office $office)
@@ -341,6 +352,63 @@ public function createAppointment(Office $office)
 
 public function storeAppointment(Request $request)
 {
+    $validated = $request->validate([
+        'office_id' => ['required', 'exists:offices,id'],
+        'appointment_date' => ['required', 'date', 'after_or_equal:today'],
+        'appointment_time' => ['required', 'in:'.implode(',', appointment_time_slots())],
+        'notes' => ['nullable', 'string', 'max:1000'],
+    ]);
+
+    $startsAt = Carbon::parse($validated['appointment_date'].' '.$validated['appointment_time']);
+    $endsAt = $startsAt->copy()->addHour();
+
+    $slotTaken = Appointment::query()
+        ->where('office_id', $validated['office_id'])
+        ->where('starts_at', $startsAt)
+        ->where('status', 'scheduled')
+        ->exists();
+
+    if ($slotTaken) {
+        return back()
+            ->withErrors(['appointment_time' => __('ui.flash.appointment_slot_taken')])
+            ->withInput();
+    }
+
+    $serviceRequest = ServiceRequest::query()
+        ->where('citizen_id', Auth::id())
+        ->where('office_id', $validated['office_id'])
+        ->whereIn('status', ['pending', 'in_review', 'missing_documents', 'approved'])
+        ->latest('submitted_at')
+        ->first();
+
+    $staff = User::query()
+        ->where('office_id', $validated['office_id'])
+        ->whereHas('role', fn ($query) => $query->where('slug', 'office_staff'))
+        ->first();
+
+    $appointment = Appointment::query()->create([
+        'service_request_id' => $serviceRequest?->id,
+        'office_id' => $validated['office_id'],
+        'citizen_id' => Auth::id(),
+        'staff_id' => $staff?->id,
+        'starts_at' => $startsAt,
+        'ends_at' => $endsAt,
+        'status' => 'scheduled',
+        'notes' => $validated['notes'] ?? null,
+    ]);
+
+    $office = Office::query()->find($validated['office_id']);
+
+    Notification::query()->create([
+        'user_id' => Auth::id(),
+        'title' => __('ui.flash.appointment_booked'),
+        'body' => __('ui.citizen.appointment_confirmed_body', [
+            'office' => $office?->localized('name') ?? __('ui.na'),
+            'when' => localized_datetime($startsAt),
+        ]),
+        'data' => ['appointment_id' => $appointment->id, 'office_id' => $office?->id],
+    ]);
+
     return redirect()
         ->route('citizen.appointments')
         ->with('success', __('ui.flash.appointment_booked'));
@@ -382,14 +450,19 @@ public function downloadDocument(ServiceRequest $serviceRequest)
 {
     abort_if($serviceRequest->citizen_id !== Auth::id(), 403);
 
-    $document = Document::where('service_request_id', $serviceRequest->id)
+    $document = Document::query()
+        ->where('service_request_id', $serviceRequest->id)
+        ->orderByRaw("CASE type WHEN 'generated_pdf' THEN 0 WHEN 'response' THEN 1 ELSE 2 END")
         ->latest()
         ->first();
 
-    if (!$document) {
+    if (! $document || ! Storage::disk('public')->exists($document->file_path)) {
         return back()->with('error', __('ui.flash.no_document'));
     }
 
-    return Storage::disk('public')->download($document->file_path, $document->original_name);
+    return Storage::disk('public')->download(
+        $document->file_path,
+        $document->original_name ?? basename($document->file_path)
+    );
 }
 }

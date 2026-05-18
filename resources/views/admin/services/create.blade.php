@@ -4,30 +4,38 @@
 @section('page-title', __('ui.admin.create_service'))
 
 @section('content')
+@php($catalogPrefix = $catalogPrefix ?? 'admin')
 <x-form-page>
 <div class="page-header">
     <div>
         <div class="page-title">{{ __('ui.admin.create_service') }}</div>
         <div class="page-subtitle">{{ __('ui.admin.create_service_sub') }}</div>
     </div>
-    <a href="{{ route('admin.services.index') }}" class="btn-secondary">{{ __('ui.admin.back_services') }}</a>
+    <a href="{{ route($catalogPrefix . '.services.index') }}" class="btn-secondary">{{ __('ui.admin.back_services') }}</a>
 </div>
 
 <div class="card">
-    <form method="POST" action="{{ route('admin.services.store') }}">
+    <form method="POST" action="{{ route($catalogPrefix . '.services.store') }}">
         @csrf
 
         <div class="form-group">
             <label class="form-label">{{ __('ui.table.office') }}</label>
-            <select name="office_id" class="form-control">
-                <option value="">{{ __('ui.admin.select_an_office') }}...</option>
-                @foreach($offices as $office)
-                    <option value="{{ $office->id }}" {{ old('office_id') == $office->id ? 'selected' : '' }}>
-                        {{ $office->localized('name') }}
-                    </option>
-                @endforeach
-            </select>
-            @error('office_id') <div class="form-error">{{ $message }}</div> @enderror
+            @if(!empty($lockOffice) && auth()->user()?->office)
+                <input type="hidden" name="office_id" value="{{ auth()->user()->office_id }}">
+                <p style="padding:10px 12px; background:#f3f4f6; border-radius:8px; font-weight:600;">
+                    {{ auth()->user()->office->localized('name') }}
+                </p>
+            @else
+                <select name="office_id" class="form-control">
+                    <option value="">{{ __('ui.admin.select_an_office') }}...</option>
+                    @foreach($offices as $office)
+                        <option value="{{ $office->id }}" {{ old('office_id') == $office->id ? 'selected' : '' }}>
+                            {{ $office->localized('name') }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('office_id') <div class="form-error">{{ $message }}</div> @enderror
+            @endif
         </div>
 
         <div class="form-group">
@@ -104,7 +112,7 @@
 
         <div class="form-actions">
             <button type="submit" class="btn-primary">{{ __('ui.admin.create_service_btn') }}</button>
-            <a href="{{ route('admin.services.index') }}" class="btn-secondary">{{ __('ui.cancel') }}</a>
+            <a href="{{ route($catalogPrefix . '.services.index') }}" class="btn-secondary">{{ __('ui.cancel') }}</a>
         </div>
     </form>
 </div>

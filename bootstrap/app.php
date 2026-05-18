@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Middleware\EnsureCitizenIdDocument;
+use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureTwoFactorVerified;
 use App\Http\Middleware\NormalizeLocalDevelopmentHost;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // After StartSession so session('locale') is read/written correctly.
         $middleware->web(append: [
             SetLocale::class,
+            EnsureUserIsActive::class,
         ]);
 
         $middleware->append(SecureHeaders::class);

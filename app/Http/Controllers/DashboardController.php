@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Office;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -34,7 +35,7 @@ class DashboardController extends Controller
     $completedRequests = \App\Models\ServiceRequest::where('office_id', $officeId)->where('status', 'completed')->count();
     $recentRequests  = \App\Models\ServiceRequest::with(['citizen', 'service'])
         ->where('office_id', $officeId)
-        ->latest()
+        ->latest('submitted_at')
         ->take(5)
         ->get();
 
@@ -44,8 +45,8 @@ class DashboardController extends Controller
     ));
 }
 
-    public function citizen(): View
+    public function citizen(): RedirectResponse
     {
-        return view('dashboard.citizen');
+        return redirect()->route('citizen.dashboard');
     }
 } 

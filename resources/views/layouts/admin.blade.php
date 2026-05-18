@@ -535,6 +535,32 @@
             color: var(--text-muted);
         }
 
+        .report-chart {
+            position: relative;
+            height: 240px;
+            max-height: 240px;
+            width: 100%;
+        }
+
+        .report-chart canvas {
+            display: block;
+            max-width: 100% !important;
+            max-height: 100% !important;
+        }
+
+        .reports-charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .reports-charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* ── Alerts ── */
         .alert-success {
             background: #d1fae5;
@@ -603,6 +629,18 @@
             outline: none;
             border-color: var(--blue-primary);
             box-shadow: 0 0 0 3px rgba(26,86,219,0.1);
+        }
+
+        select.form-control {
+            width: 100%;
+            max-width: 22rem;
+            min-width: min(100%, 16rem);
+            padding-inline: 14px 2.5rem;
+            appearance: auto;
+        }
+
+        html[dir="rtl"] select.form-control {
+            padding-inline: 2.5rem 14px;
         }
 
         .form-error {
@@ -737,11 +775,12 @@
 
     <nav class="sidebar-nav">
 @if ($roleSlug === 'citizen')
-    <div class="nav-section-label">{{ __('ui.nav.citizen_portal') }}</div>
+    <div class="nav-section-label">{{ __('ui.overview') }}</div>
     <a href="{{ route('citizen.dashboard') }}" class="nav-link {{ request()->routeIs('citizen.dashboard') ? 'active' : '' }}">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
         {{ __('ui.nav.dashboard') }}
     </a>
+    <div class="nav-section-label">{{ __('ui.citizen_services_section') }}</div>
     <a href="{{ route('citizen.services') }}" class="nav-link {{ request()->routeIs('citizen.services*') ? 'active' : '' }}">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
         {{ __('ui.nav.browse_services') }}
@@ -750,10 +789,16 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
         {{ __('ui.nav.my_requests') }}
     </a>
+    <div class="nav-section-label">{{ __('ui.citizen_payments_section') }}</div>
     <a href="{{ route('citizen.payments') }}" class="nav-link {{ request()->routeIs('citizen.payments*') ? 'active' : '' }}">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
         {{ __('ui.nav.payments') }}
     </a>
+    <a href="{{ route('citizen.history') }}" class="nav-link {{ request()->routeIs('citizen.history*') ? 'active' : '' }}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        {{ __('ui.nav.history') }}
+    </a>
+    <div class="nav-section-label">{{ __('ui.citizen_explore_section') }}</div>
     <a href="{{ route('citizen.maps') }}" class="nav-link {{ request()->routeIs('citizen.maps') ? 'active' : '' }}">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         {{ __('ui.nav.offices_map') }}
@@ -762,10 +807,7 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
         {{ __('ui.nav.appointments') }}
     </a>
-    <a href="{{ route('citizen.history') }}" class="nav-link {{ request()->routeIs('citizen.history') ? 'active' : '' }}">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        {{ __('ui.nav.history') }}
-    </a>
+    <div class="nav-section-label">{{ __('ui.account_section') }}</div>
     <a href="{{ route('id-upload') }}" class="nav-link {{ request()->routeIs('id-upload*') ? 'active' : '' }} {{ auth()->user()->needsIdDocument() ? 'nav-link--attention' : '' }}">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
         {{ auth()->user()->needsIdDocument() ? __('ui.nav.upload_id_required') : __('ui.nav.update_id') }}
@@ -785,6 +827,15 @@
     <a href="{{ route('staff.office.edit') }}" class="nav-link {{ request()->routeIs('staff.office.*') ? 'active' : '' }}">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/></svg>
         {{ __('ui.nav.office_profile') }}
+    </a>
+    <div class="nav-section-label">{{ __('ui.catalog_section') }}</div>
+    <a href="{{ route('staff.categories.index') }}" class="nav-link {{ request()->routeIs('staff.categories.*') ? 'active' : '' }}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+        {{ __('ui.nav.categories') }}
+    </a>
+    <a href="{{ route('staff.services.index') }}" class="nav-link {{ request()->routeIs('staff.services.*') ? 'active' : '' }}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        {{ __('ui.nav.services') }}
     </a>
     <div class="nav-section-label">{{ __('ui.feedback_section') }}</div>
     <a href="{{ route('staff.feedback.index') }}" class="nav-link {{ request()->routeIs('staff.feedback.*') ? 'active' : '' }}">
@@ -817,7 +868,7 @@
     </a>
     <a href="{{ route('admin.categories.index') }}" class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-        Categories
+        {{ __('ui.nav.categories') }}
     </a>
     <a href="{{ route('admin.services.index') }}" class="nav-link {{ request()->routeIs('admin.services.*') ? 'active' : '' }}">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
@@ -870,5 +921,6 @@
     @yield('content')
 </main>
 
+@stack('scripts')
 </body>
 </html>

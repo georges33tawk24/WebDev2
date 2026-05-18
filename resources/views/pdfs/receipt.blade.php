@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
-    <title>Payment Receipt</title>
+    <title>{{ __('ui.pdf.receipt_title') }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; color: #111827; padding: 40px; }
@@ -116,12 +116,12 @@
 <body>
 
 <div class="header">
-    <h1>⚡ E-SERVICES PLATFORM</h1>
-    <p>Official Government Services Portal</p>
+    <h1>{{ config('app.name') }}</h1>
+    <p>{{ __('ui.pdf.municipal_platform') }}</p>
 </div>
 
 <div class="receipt-title">
-    <h2>Payment Receipt</h2>
+    <h2>{{ __('ui.pdf.receipt_title') }}</h2>
 </div>
 
 <div class="reference">

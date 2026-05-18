@@ -4,17 +4,18 @@
 @section('page-title', __('ui.admin.edit_category'))
 
 @section('content')
+@php($catalogPrefix = $catalogPrefix ?? 'admin')
 <x-form-page>
 <div class="page-header">
     <div>
         <div class="page-title">{{ __('ui.admin.edit_category') }}</div>
         <div class="page-subtitle">{{ __('ui.admin.edit_category_sub', ['name' => $category->localized('name')]) }}</div>
     </div>
-    <a href="{{ route('admin.categories.index') }}" class="btn-secondary"> {{ __('ui.admin.back_categories') }}</a>
+    <a href="{{ route($catalogPrefix . '.categories.index') }}" class="btn-secondary"> {{ __('ui.admin.back_categories') }}</a>
 </div>
 
 <div class="card">
-    <form method="POST" action="{{ route('admin.categories.update', $category) }}">
+    <form method="POST" action="{{ route($catalogPrefix . '.categories.update', $category) }}">
         @csrf
         @method('PUT')
 
@@ -44,7 +45,7 @@
 
         <div class="form-actions">
             <button type="submit" class="btn-primary">{{ __('ui.admin.update_category') }}</button>
-            <a href="{{ route('admin.categories.index') }}" class="btn-secondary">{{ __('ui.cancel') }}</a>
+            <a href="{{ route($catalogPrefix . '.categories.index') }}" class="btn-secondary">{{ __('ui.cancel') }}</a>
         </div>
     </form>
 </div>

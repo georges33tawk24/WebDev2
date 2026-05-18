@@ -58,7 +58,7 @@
             @csrf
             <div class="form-group">
                 <label class="form-label">{{ __('ui.staff.reply_type') }}</label>
-                <select name="reply_type" class="form-control" style="max-width:200px;">
+                <select name="reply_type" class="form-control">
                     <option value="public">{{ __('ui.staff.reply_public_option') }}</option>
                     <option value="private">{{ __('ui.staff.reply_private_option') }}</option>
                 </select>

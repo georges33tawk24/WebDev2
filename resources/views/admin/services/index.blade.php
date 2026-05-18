@@ -4,12 +4,13 @@
 @section('page-title', __('ui.admin.services_title'))
 
 @section('content')
+@php($catalogPrefix = $catalogPrefix ?? 'admin')
 <div class="page-header">
     <div>
         <div class="page-title">{{ __('ui.admin.services_title') }}</div>
         <div class="page-subtitle">{{ __('ui.admin.services_manage_sub') }}</div>
     </div>
-    <a href="{{ route('admin.services.create') }}" class="btn-primary">{{ __('ui.admin.add_service') }}</a>
+    <a href="{{ route($catalogPrefix . '.services.create') }}" class="btn-primary">{{ __('ui.admin.add_service') }}</a>
 </div>
 
 <div class="table-wrapper">
@@ -41,8 +42,8 @@
                     @endif
                 </td>
                 <td style="display:flex; gap:8px;">
-                    <a href="{{ route('admin.services.edit', $service) }}" class="btn-secondary" style="padding:6px 12px; font-size:12px;">{{ __('ui.edit') }}</a>
-                    <form method="POST" action="{{ route('admin.services.destroy', $service) }}" onsubmit="return confirm(@js(__('ui.admin.confirm_delete_service')))">
+                    <a href="{{ route($catalogPrefix . '.services.edit', $service) }}" class="btn-secondary" style="padding:6px 12px; font-size:12px;">{{ __('ui.edit') }}</a>
+                    <form method="POST" action="{{ route($catalogPrefix . '.services.destroy', $service) }}" onsubmit="return confirm(@js(__('ui.admin.confirm_delete_service')))">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn-danger">{{ __('ui.delete') }}</button>
@@ -52,7 +53,7 @@
             @empty
             <tr>
                 <td colspan="7" style="text-align:center; color:#6b7280; padding:32px;">
-                    {{ __('ui.admin.no_services') }} <a href="{{ route('admin.services.create') }}" style="color:#1a56db;">{{ __('ui.admin.create_office_link') }}</a>
+                    {{ __('ui.admin.no_services') }} <a href="{{ route($catalogPrefix . '.services.create') }}" style="color:#1a56db;">{{ __('ui.admin.create_office_link') }}</a>
                 </td>
             </tr>
             @endforelse

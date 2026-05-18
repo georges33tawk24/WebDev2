@@ -13,8 +13,10 @@
         {{ __('ui.citizen.qr_sub') }}
     </p>
 
-    <div style="margin-bottom:24px;">
-        {!! $qrCode !!}
+    <div style="margin-bottom:24px; display:flex; justify-content:center;">
+        <div style="line-height:0;">
+            {!! $qrCode !!}
+        </div>
     </div>
 
     <p><strong>{{ __('ui.citizen.reference_colon') }}</strong> {{ $serviceRequest->reference_number }}</p>

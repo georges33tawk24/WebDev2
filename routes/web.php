@@ -41,7 +41,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/account-protected', [AuthController::class, 'showAccountProtected'])->name('account.protected');
 });
 
-Route::middleware(['auth', '2fa'])->group(function (): void {
+Route::middleware(['auth', '2fa', 'citizen.id'])->group(function (): void {
     Route::post('/api/id-document/parse', [IdDocumentController::class, 'parse'])
         ->middleware('throttle:30,1')
         ->name('api.id-document.parse');
@@ -58,7 +58,7 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
         ->middleware('role:office_staff')
         ->name('dashboard.staff');
     Route::get('/dashboard/citizen', fn () => redirect()->route('citizen.dashboard'))
-        ->middleware(['role:citizen', 'citizen.id'])
+        ->middleware('role:citizen')
         ->name('dashboard.citizen');
 
     // Admin Routes
@@ -94,7 +94,7 @@ Route::middleware(['auth', '2fa'])->group(function (): void {
     });
     //Route::middleware(['citizen.id','role:citizen'])->prefix('citizen')->name('citizen.')->group(function () {
 // Citizen portal (Chris module)
- Route::middleware(['role:citizen', 'citizen.id'])->prefix('citizen')->name('citizen.')->group(function () {
+ Route::middleware('role:citizen')->prefix('citizen')->name('citizen.')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Citizen\CitizenController::class, 'dashboard'])->name('dashboard');
 
         Route::get('/services', [\App\Http\Controllers\Citizen\CitizenController::class, 'services'])->name('services');

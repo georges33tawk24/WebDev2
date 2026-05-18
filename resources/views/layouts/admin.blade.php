@@ -374,6 +374,26 @@
             font-size: 14px;
         }
 
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .nav-link--attention {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fde68a;
+        }
+
         /* ── Forms ── */
         .form-group { margin-bottom: 18px; }
 
@@ -458,6 +478,10 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         History
     </a>
+    <a href="{{ route('id-upload') }}" class="nav-link {{ request()->routeIs('id-upload*') ? 'active' : '' }} {{ auth()->user()->needsIdDocument() ? 'nav-link--attention' : '' }}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        {{ auth()->user()->needsIdDocument() ? 'Upload ID (required)' : 'Update ID' }}
+    </a>
 @elseif ($roleSlug === 'office_staff')
     <div class="nav-section-label">Staff</div>
     <a href="{{ route('dashboard.staff') }}" class="nav-link {{ request()->routeIs('dashboard.staff') ? 'active' : '' }}">
@@ -532,6 +556,15 @@
     @endif
     @if(session('error'))
         <div class="alert-error">❌ {{ session('error') }}</div>
+    @endif
+    @if(session('status') && ! session('success') && ! session('error'))
+        <div class="alert-success">{{ session('status') }}</div>
+    @endif
+    @if($roleSlug === 'citizen' && auth()->user()->needsIdDocument())
+        <div class="alert-warning">
+            <span>Your account does not have a valid ID on file. Upload your ID to use the citizen portal.</span>
+            <a href="{{ route('id-upload') }}" class="btn-primary" style="padding: 8px 14px; font-size: 13px;">Upload ID now</a>
+        </div>
     @endif
 
     @yield('content')

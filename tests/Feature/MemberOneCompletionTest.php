@@ -62,6 +62,40 @@ class MemberOneCompletionTest extends TestCase
             ->assertRedirect(route('id-upload'));
     }
 
+    public function test_citizen_with_missing_id_file_is_prompted_to_upload(): void
+    {
+        $citizenRole = Role::query()->create(['name' => 'Citizen', 'slug' => 'citizen']);
+        $user = User::query()->create([
+            'name' => 'Citizen',
+            'email' => 'missing-file@example.com',
+            'password' => Hash::make('password123'),
+            'role_id' => $citizenRole->id,
+            'two_factor_verified_at' => now(),
+            'id_document_path' => 'ids/does-not-exist.jpg',
+        ]);
+
+        $this->assertTrue($user->needsIdDocument());
+
+        $this->actingAs($user)
+            ->get(route('citizen.dashboard'))
+            ->assertRedirect(route('id-upload'));
+    }
+
+    public function test_seeded_placeholder_id_counts_as_missing(): void
+    {
+        $citizenRole = Role::query()->create(['name' => 'Citizen', 'slug' => 'citizen']);
+        $user = User::query()->create([
+            'name' => 'Citizen',
+            'email' => 'placeholder@example.com',
+            'password' => Hash::make('password123'),
+            'role_id' => $citizenRole->id,
+            'two_factor_verified_at' => now(),
+            'id_document_path' => 'ids/seed-placeholder.jpg',
+        ]);
+
+        $this->assertTrue($user->needsIdDocument());
+    }
+
     public function test_register_id_preview_endpoint_returns_json(): void
     {
         $response = $this->post(route('register.id-preview'), [

@@ -17,10 +17,16 @@ class IdDocumentController extends Controller
 
         $parsed = $parser->parse($validated['id_document']);
 
+        $name = $parsed['name'] ?? null;
+        $dob = $parsed['date_of_birth'] ?? null;
+
         return response()->json([
-            'name' => $parsed['name'] ?? null,
-            'date_of_birth' => $parsed['date_of_birth'] ?? null,
-            'parsed' => $parsed !== [],
+            'name' => $name,
+            'date_of_birth' => $dob,
+            'parsed' => filled($name) || filled($dob),
+            'message' => filled($name) || filled($dob)
+                ? null
+                : 'Could not read a clear name or date of birth from this image. Use a sharper photo or type your details manually.',
         ]);
     }
 }

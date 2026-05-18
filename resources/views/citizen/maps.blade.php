@@ -248,8 +248,14 @@
     }
 </script>
 
-<script async defer
-    src="https://maps.googleapis.com/maps/api/js?key={{ $googleMapsApiKey }}&callback=initMap">
-</script>
+@if (filled($googleMapsApiKey))
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key={{ $googleMapsApiKey }}&callback=initMap">
+    </script>
+@else
+    <p class="field-hint-block" style="margin-top:12px; color:#b45309;">
+        Google Maps is not configured. Add <code>GOOGLE_MAPS_API_KEY</code> to your <code>.env</code> file.
+    </p>
+@endif
 
 @endsection

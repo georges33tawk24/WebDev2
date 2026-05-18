@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
@@ -196,7 +197,7 @@ class AuthController extends Controller
         $user = Auth::user();
 
         if ($user->two_factor_verified_at !== null && ! $request->session()->has('two_factor.step')) {
-            return redirect()->route($this->dashboardRouteFor($user->role?->slug));
+            return redirect()->route(self::homeRouteFor($user));
         }
 
         $step = $request->session()->get('two_factor.step', 'choose');
@@ -254,6 +255,16 @@ class AuthController extends Controller
         $record->delete();
         $request->user()->update(['two_factor_verified_at' => now()]);
         $request->session()->forget(['two_factor.step', 'two_factor.last_sent_at']);
+
+        $user = $request->user()->fresh();
+        $user?->purgeInvalidIdDocumentPath();
+        $user = $user?->fresh();
+
+        if ($user?->needsIdDocument()) {
+            return redirect()
+                ->route('id-upload')
+                ->with('status', 'Please upload your ID document to continue.');
+        }
 
         return redirect()->route('account.protected');
     }
@@ -347,7 +358,13 @@ class AuthController extends Controller
 
     public function showIdUpload(): View
     {
-        return view('auth.id-upload');
+        $user = auth()->user();
+        $user?->purgeInvalidIdDocumentPath();
+        $user?->refresh();
+
+        return view('auth.id-upload', [
+            'required' => $user?->needsIdDocument() ?? true,
+        ]);
     }
 
     public function storeIdUpload(Request $request): RedirectResponse
@@ -360,9 +377,16 @@ class AuthController extends Controller
         $idFile = $request->file('id_document');
         $idParsing = app(IdDocumentParsingService::class)->parse($idFile);
 
+        $user = $request->user();
+        $previousPath = $user->id_document_path;
+
         $path = $idFile->store('ids', 'public');
 
-        $request->user()->update([
+        if (is_string($previousPath) && $previousPath !== '' && $previousPath !== $path) {
+            Storage::disk('public')->delete($previousPath);
+        }
+
+        $user->update([
             'id_document_path' => $path,
             'name' => $idParsing['name'] ?? $request->user()->name,
             'date_of_birth' => $idParsing['date_of_birth'] ?? $request->user()->date_of_birth,
@@ -532,6 +556,8 @@ class AuthController extends Controller
     {
         $request ??= request();
         Auth::login($user);
+        $user->purgeInvalidIdDocumentPath();
+        $user->refresh();
         $request->session()->regenerate();
 
         if ($this->roleSkipsTwoFactor($user)) {

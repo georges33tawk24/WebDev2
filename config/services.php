@@ -52,6 +52,7 @@ return [
     'id_ocr' => [
         'url' => env('ID_OCR_API_URL'),
         'token' => env('ID_OCR_API_TOKEN'),
+        'language' => env('ID_OCR_LANGUAGE', 'eng'),
     ],
 
     'oauth' => [

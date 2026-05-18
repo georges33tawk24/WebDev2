@@ -77,7 +77,7 @@ class AuthFlowTest extends TestCase
 
         $response = $this->actingAs($user)->get(route('dashboard.admin'));
 
-        $response->assertRedirect(route('citizen.dashboard'));
+        $response->assertRedirect(route('id-upload'));
     }
 
     public function test_oauth_callback_rejects_invalid_state(): void
@@ -217,7 +217,45 @@ class AuthFlowTest extends TestCase
         $response = $this->actingAs($user)
             ->post(route('2fa.verify.submit'), ['code' => '123456']);
 
-        $response->assertRedirect(route('account.protected'));
+        $response->assertRedirect(route('id-upload'));
         $this->assertNull(TwoFactorCode::query()->where('user_id', $user->id)->first());
+    }
+
+    public function test_google_oauth_after_two_factor_redirects_citizen_to_id_upload(): void
+    {
+        Role::query()->create(['name' => 'Citizen', 'slug' => 'citizen']);
+
+        config()->set('services.google.client_id', 'client-id');
+        config()->set('services.google.client_secret', 'client-secret');
+        config()->set('services.google.redirect', 'http://localhost/auth/google/callback');
+        config()->set('services.oauth.verify_ssl', false);
+
+        Http::fake([
+            'https://oauth2.googleapis.com/token' => Http::response(['access_token' => 'access-token'], 200),
+            'https://www.googleapis.com/oauth2/v2/userinfo' => Http::response([
+                'id' => 'google-user-2',
+                'name' => 'OAuth Citizen',
+                'email' => 'oauth.new@gmail.com',
+            ], 200),
+        ]);
+
+        $this->withSession(['oauth_state_google' => 'ok-state'])
+            ->get(route('oauth.callback', ['provider' => 'google', 'state' => 'ok-state', 'code' => 'oauth-code']))
+            ->assertRedirect(route('2fa.verify'));
+
+        $user = User::query()->where('email', 'oauth.new@gmail.com')->firstOrFail();
+
+        TwoFactorCode::query()->create([
+            'user_id' => $user->id,
+            'code' => '654321',
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['two_factor.step' => 'verify'])
+            ->post(route('2fa.verify.submit'), ['code' => '654321'])
+            ->assertRedirect(route('id-upload'));
+
+        $this->assertTrue($user->fresh()->needsIdDocument());
     }
 }

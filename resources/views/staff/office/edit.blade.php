@@ -119,6 +119,10 @@
     }
 </script>
 
+@if (filled(config('services.google.maps_key')))
 <script src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps_key') }}&callback=initMap" async defer></script>
+@else
+<p class="form-error" style="margin-top:8px;">Google Maps is not configured. Add GOOGLE_MAPS_API_KEY to .env.</p>
+@endif
 
 @endsection

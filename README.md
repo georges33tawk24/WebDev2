@@ -1,58 +1,252 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# WebDev2 — Municipal E-Services Portal
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel application for a government e-services platform: citizen portal, office staff workflows, admin management, authentication (2FA, Google/Facebook OAuth), ID upload/OCR, payments, appointments, and reports.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Prerequisites
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **PHP 8.3+** with extensions: `pdo`, `pdo_mysql` or `pdo_sqlite`, `mbstring`, `openssl`, `fileinfo`
+- **Composer**
+- **Node.js** and **npm**
+- **MySQL 8+** (recommended for teammates) *or* **SQLite** (quick local option)
+- **Caddy** (optional, for HTTPS local dev — required for Facebook OAuth)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## First-time setup (after cloning from GitHub)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### 1. Install dependencies
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/georges33tawk24/WebDev2.git
+cd WebDev2
+composer install
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Environment file
 
-## Contributing
+```bash
+cp .env.example .env
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Add shared API keys and mail settings from the team (Discord / `team.env` — **do not commit** `team.env` or `.env`):
 
-## Code of Conduct
+```bash
+# Option A: paste values from team.env manually into .env
+# Option B: append team file (if you have it locally)
+cat team.env >> .env
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Keep the team **`APP_KEY`** in `.env.example` if your group agreed on one shared dev key.
 
-## Security Vulnerabilities
+### 3. Database
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+#### Option A — MySQL (team default)
+
+1. Start MySQL (MAMP, XAMPP, Homebrew, etc.).
+2. Create the database:
+
+```bash
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS webdev2 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+3. In `.env`, set:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=webdev2
+DB_USERNAME=root
+DB_PASSWORD=your_password
+```
+
+#### Option B — SQLite (quick start)
+
+In `.env`, comment out the MySQL block and use:
+
+```env
+DB_CONNECTION=sqlite
+# DB_DATABASE is optional; defaults to database/database.sqlite
+```
+
+Ensure the file exists:
+
+```bash
+touch database/database.sqlite
+```
+
+### 4. Migrations and demo data
+
+Creates all tables and seeds **Lebanon-themed demo data** (offices, services, users, ~70 service requests, etc.):
+
+```bash
+php artisan migrate --seed
+```
+
+**Reset everything** (deletes all local data):
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+> Each developer has **their own** database. Git shares **seeders**, not your rows. After clone, everyone runs `migrate --seed` to get the same baseline.
+
+### 5. Frontend build
+
+```bash
+npm install
+npm run build
+```
+
+### 6. Config cache
+
+```bash
+php artisan config:clear
+```
+
+### One-command setup
+
+If `.env` is ready and the MySQL database `webdev2` exists:
+
+```bash
+composer setup
+```
+
+Runs install, migrate + seed, npm build, and config clear.
+
+---
+
+## Running the application
+
+### HTTPS (Google + Facebook OAuth)
+
+Facebook requires HTTPS on `127.0.0.1`. Install Caddy if needed (`brew install caddy`), then:
+
+```bash
+composer dev:https
+```
+
+Open: **https://127.0.0.1:8000**
+
+This starts the PHP server, Caddy TLS proxy, and a queue worker (needed for 2FA email codes).
+
+### HTTP only (password login, simpler)
+
+```bash
+php artisan serve
+php artisan queue:listen
+```
+
+Open: **http://127.0.0.1:8000**
+
+---
+
+## Seeded test accounts
+
+All seeded users use password: **`password123`**
+
+| Role | Email | Notes |
+|------|--------|--------|
+| Admin | `admin@example.com` | Skips 2FA |
+| Staff | `staff@example.com` | Beirut office |
+| Staff | `staff.tripoli@example.com`, `staff.saida@example.com`, … | One per municipality |
+| Citizen | `citizen@example.com` | Has demo ID on file |
+| Citizen | `citizen.karim@example.com`, `citizen.mira@example.com`, … | 20 citizens total |
+
+Demo data is defined in `database/seeders/DemoDataSeeder.php` (8 Lebanese municipalities, 23 services, requests in various statuses).
+
+---
+
+## Viewing the database
+
+### MySQL
+
+```bash
+mysql -u root -p webdev2
+```
+
+```sql
+SHOW TABLES;
+SELECT name, municipality FROM offices;
+SELECT status, COUNT(*) FROM service_requests GROUP BY status;
+```
+
+Or use **TablePlus**, **phpMyAdmin**, or **DBeaver** with your `DB_*` credentials.
+
+### SQLite
+
+Database file: `database/database.sqlite`
+
+```bash
+sqlite3 database/database.sqlite
+```
+
+Or open that file in **DB Browser for SQLite** / TablePlus.
+
+### Laravel Tinker
+
+```bash
+php artisan tinker
+```
+
+```php
+\App\Models\Office::count();
+\App\Models\ServiceRequest::with('citizen', 'service')->latest()->take(5)->get();
+```
+
+---
+
+## Teammate checklist (MySQL)
+
+```bash
+git clone <repo-url>
+cd WebDev2
+composer install
+cp .env.example .env
+# Edit .env: DB_PASSWORD, paste team.env secrets
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS webdev2 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+php artisan migrate --seed
+npm install && npm run build
+php artisan config:clear
+composer dev:https
+```
+
+---
+
+## Important notes
+
+- **Never commit** `.env`, `team.env`, or `database/database.sqlite`.
+- **`migrate:fresh --seed`** wipes the database — coordinate before running on a shared machine.
+- **OAuth redirect URLs** must match `APP_URL` in `.env` (see `GOOGLE_REDIRECT_URI`, `FACEBOOK_REDIRECT_URI`).
+- **ID upload**: Citizens without a valid ID file are redirected to `/id-upload` after login/2FA. Seeded citizens use a demo ID file under `storage/app/public/ids/`.
+- **Queue worker** must run for 2FA emails (`queue:listen` or included in `composer dev:https`).
+
+---
+
+## Tests
+
+```bash
+php artisan test
+```
+
+---
+
+## Project structure (high level)
+
+| Area | Path |
+|------|------|
+| Routes | `routes/web.php` |
+| Auth & OAuth | `app/Http/Controllers/AuthController.php` |
+| Citizen portal | `app/Http/Controllers/Citizen/` |
+| Admin | `app/Http/Controllers/Admin/` |
+| Staff | `app/Http/Controllers/Staff/` |
+| Seeders | `database/seeders/DemoDataSeeder.php` |
+| Main layout | `resources/views/layouts/admin.blade.php` |
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT (Laravel framework). See course / team agreement for project ownership.

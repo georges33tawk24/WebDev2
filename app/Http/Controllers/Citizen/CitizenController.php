@@ -176,7 +176,7 @@ class CitizenController extends Controller
 
     return redirect()
         ->route('citizen.requests')
-        ->with('success', 'Request submitted successfully. Reference number: ' . $serviceRequest->reference_number);
+        ->with('success', __('ui.flash.request_submitted', ['ref' => $serviceRequest->reference_number]));
 }
     public function createFeedback(ServiceRequest $serviceRequest)
 {
@@ -211,7 +211,7 @@ public function storeFeedback(Request $request, ServiceRequest $serviceRequest)
 
     return redirect()
         ->route('citizen.history')
-        ->with('success', 'Feedback submitted successfully.');
+        ->with('success', __('ui.flash.feedback_submitted'));
 }
    public function chat(ServiceRequest $serviceRequest)
 {
@@ -242,7 +242,7 @@ public function sendMessage(Request $request, ServiceRequest $serviceRequest)
         ->first();
 
     if (!$staffUser) {
-        return back()->with('error', 'No office staff available for this office yet.');
+        return back()->with('error', __('ui.flash.no_staff_for_chat'));
     }
 
     Message::create([
@@ -252,7 +252,7 @@ public function sendMessage(Request $request, ServiceRequest $serviceRequest)
         'message' => $request->message,
     ]);
 
-    return back()->with('success', 'Message sent successfully.');
+    return back()->with('success', __('ui.flash.message_sent'));
 }
    public function payments()
 {
@@ -294,22 +294,33 @@ public function processPayment(Request $request, ServiceRequest $serviceRequest)
 
     return redirect()
         ->route('citizen.payments')
-        ->with('success', 'Payment completed successfully.');
+        ->with('success', __('ui.flash.payment_completed'));
 }
 
 public function maps()
 {
-    $offices = Office::select(
-        'id',
-        'name',
-        'address',
-        'working_hours',
-        'latitude',
-        'longitude'
-    )
-    ->whereNotNull('latitude')
-    ->whereNotNull('longitude')
-    ->get();
+    $offices = Office::query()
+        ->select(
+            'id',
+            'name',
+            'name_ar',
+            'address',
+            'address_ar',
+            'working_hours',
+            'latitude',
+            'longitude'
+        )
+        ->whereNotNull('latitude')
+        ->whereNotNull('longitude')
+        ->get()
+        ->map(fn (Office $office) => [
+            'id' => $office->id,
+            'name' => $office->localized('name'),
+            'address' => $office->localized('address'),
+            'working_hours' => $office->working_hours,
+            'latitude' => $office->latitude,
+            'longitude' => $office->longitude,
+        ]);
 
     $googleMapsApiKey = config('services.google.maps_key');
 
@@ -332,7 +343,7 @@ public function storeAppointment(Request $request)
 {
     return redirect()
         ->route('citizen.appointments')
-        ->with('success', 'Appointment booked successfully.');
+        ->with('success', __('ui.flash.appointment_booked'));
 }
 
 public function history()
@@ -356,7 +367,7 @@ public function downloadReceipt(ServiceRequest $serviceRequest)
         ->first();
 
     if (!$payment) {
-        return back()->with('error', 'No paid receipt available for this request.');
+        return back()->with('error', __('ui.flash.no_receipt'));
     }
 
     $pdf = Pdf::loadView('citizen.receipt-pdf', [
@@ -376,7 +387,7 @@ public function downloadDocument(ServiceRequest $serviceRequest)
         ->first();
 
     if (!$document) {
-        return back()->with('error', 'No document available for this request.');
+        return back()->with('error', __('ui.flash.no_document'));
     }
 
     return Storage::disk('public')->download($document->file_path, $document->original_name);

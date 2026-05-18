@@ -1,21 +1,21 @@
-<x-layouts.auth-flow title="Verify — WebDev2">
+<x-layouts.auth-flow title="{{ __('ui.auth.verify_page_title') }} — {{ __('ui.app_name') }}">
     <div class="twofa-back-row">
         <form method="POST" action="{{ route('logout') }}" class="twofa-back-form">
             @csrf
-            <button type="submit" class="btn-icon-back" aria-label="Sign out and go back">
+            <button type="submit" class="btn-icon-back" aria-label="{{ __('ui.auth.sign_out_back') }}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
         </form>
     </div>
 
-    <h1 class="twofa-title">Verify your email</h1>
-    <p class="twofa-sub">Enter the code we sent to <strong>{{ $maskedEmail }}</strong>.</p>
+    <h1 class="twofa-title">{{ __('ui.auth.verify_email') }}</h1>
+    <p class="twofa-sub">{!! __('ui.auth.verify_sub', ['email' => '<strong>'.$maskedEmail.'</strong>']) !!}</p>
 
     <form method="POST" action="{{ route('2fa.verify.submit') }}" class="otp-form" id="otp-form">
         @csrf
         <input type="hidden" name="code" id="otp-hidden" value="{{ old('code') }}" required>
 
-        <div class="otp-grid" role="group" aria-label="Verification code digits">
+        <div class="otp-grid" role="group" aria-label="{{ __('ui.auth.otp_group_label') }}">
             @for ($i = 0; $i < 6; $i++)
                 <input
                     type="text"
@@ -25,7 +25,7 @@
                     class="otp-cell"
                     data-otp-index="{{ $i }}"
                     autocomplete="one-time-code"
-                    aria-label="Digit {{ $i + 1 }}"
+                    aria-label="{{ __('ui.auth.otp_digit', ['n' => $i + 1]) }}"
                 >
             @endfor
         </div>
@@ -38,13 +38,16 @@
             <p class="twofa-inline-error">{{ $message }}</p>
         @enderror
 
-        <button type="submit" class="btn-primary btn-block twofa-submit">Verify</button>
+        <button type="submit" class="btn-primary btn-block twofa-submit">{{ __('ui.auth.verify') }}</button>
     </form>
 
     <div class="twofa-links">
         <form method="POST" action="{{ route('2fa.resend') }}" id="resend-form">
             @csrf
-            <button type="submit" class="btn-text-link" id="resend-btn">Didn’t receive the code? <span id="resend-label">Resend</span></button>
+            <button type="submit" class="btn-text-link" id="resend-btn">
+                {{ __('ui.auth.resend_prompt') }}
+                <span id="resend-label">{{ __('ui.auth.resend_code') }}</span>
+            </button>
         </form>
     </div>
 
@@ -54,6 +57,12 @@
                 var cells = Array.prototype.slice.call(document.querySelectorAll('.otp-cell'));
                 var hidden = document.getElementById('otp-hidden');
                 var form = document.getElementById('otp-form');
+                var resendLabel = document.getElementById('resend-label');
+                var resendBtn = document.getElementById('resend-btn');
+                var resendForm = document.getElementById('resend-form');
+                var resendText = @json(__('ui.auth.resend_code'));
+                var resendInTemplate = @json(__('ui.auth.resend_in', ['time' => '__TIME__']));
+                var seconds = {{ (int) ($resendCooldownSeconds ?? 0) }};
 
                 function sync() {
                     hidden.value = cells.map(function (c) { return (c.value || '').replace(/\D/g, ''); }).join('');
@@ -85,23 +94,20 @@
                     sync();
                 });
 
-                var resendBtn = document.getElementById('resend-btn');
-                var resendLabel = document.getElementById('resend-label');
-                var resendForm = document.getElementById('resend-form');
-                var seconds = {{ (int) ($resendCooldownSeconds ?? 0) }};
-
                 function formatCountdown(remaining) {
-                    return String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0');
+                    var m = String(Math.floor(remaining / 60)).padStart(2, '0');
+                    var s = String(remaining % 60).padStart(2, '0');
+                    return m + ':' + s;
                 }
 
                 function tick() {
                     if (seconds <= 0) {
                         resendBtn.disabled = false;
-                        resendLabel.textContent = 'Resend';
+                        resendLabel.textContent = resendText;
                         return;
                     }
                     resendBtn.disabled = true;
-                    resendLabel.textContent = 'Resend in ' + formatCountdown(seconds);
+                    resendLabel.textContent = resendInTemplate.replace('__TIME__', formatCountdown(seconds));
                     seconds -= 1;
                     setTimeout(tick, 1000);
                 }

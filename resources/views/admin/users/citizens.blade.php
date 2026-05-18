@@ -1,13 +1,13 @@
 @extends('layouts.admin')
 
-@section('title', 'Citizens')
-@section('page-title', 'Citizens')
+@section('title', __('ui.admin.citizens_title'))
+@section('page-title', __('ui.admin.citizens_title'))
 
 @section('content')
 <div class="page-header">
     <div>
-        <div class="page-title">Registered Citizens</div>
-        <div class="page-subtitle">List of all citizens registered on the platform</div>
+        <div class="page-title">{{ __('ui.admin.citizens_title') }}</div>
+        <div class="page-subtitle">{{ __('ui.admin.citizens_sub') }}</div>
     </div>
 </div>
 
@@ -15,11 +15,11 @@
     <table>
         <thead>
             <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Status</th>
-                <th>Joined</th>
+                <th>{{ __('ui.table.name') }}</th>
+                <th>{{ __('ui.table.email') }}</th>
+                <th>{{ __('ui.table.phone') }}</th>
+                <th>{{ __('ui.table.status') }}</th>
+                <th>{{ __('ui.table.joined') }}</th>
             </tr>
         </thead>
         <tbody>
@@ -27,19 +27,19 @@
             <tr>
                 <td style="font-weight:600; color:#111827;">{{ $citizen->name }}</td>
                 <td>{{ $citizen->email }}</td>
-                <td>{{ $citizen->phone ?? '—' }}</td>
+                <td>{{ $citizen->phone ?? __('ui.na') }}</td>
                 <td>
                     @if($citizen->email_verified_at)
-                        <span class="badge badge-active">Active</span>
+                        <span class="badge badge-active">{{ __('ui.active') }}</span>
                     @else
-                        <span class="badge badge-inactive">Inactive</span>
+                        <span class="badge badge-inactive">{{ __('ui.inactive') }}</span>
                     @endif
                 </td>
                 <td style="color:#6b7280;">{{ $citizen->created_at->format('M d, Y') }}</td>
             </tr>
             @empty
             <tr>
-                <td colspan="5" style="text-align:center; color:#6b7280; padding:32px;">No citizens found.</td>
+                <td colspan="5" style="text-align:center; color:#6b7280; padding:32px;">{{ __('ui.no_results') }}</td>
             </tr>
             @endforelse
         </tbody>

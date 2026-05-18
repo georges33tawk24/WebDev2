@@ -31,6 +31,6 @@ class FeedbackController extends Controller
             $feedback->update(['private_reply' => $validated['reply']]);
         }
 
-        return back()->with('success', 'Reply sent successfully!');
+        return back()->with('success', __('ui.flash.reply_sent'));
     }
 }

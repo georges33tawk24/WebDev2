@@ -1,33 +1,34 @@
 @extends('layouts.admin')
 
-@section('title', 'Submit Request')
-@section('page-title', 'Submit Request')
+@section('title', __('ui.citizen.submit_request'))
+@section('page-title', __('ui.citizen.submit_request'))
 
 @section('content')
+<x-form-page class="form-page--wide">
 <div class="card">
     <h1 style="font-size:28px; font-weight:700; margin-bottom:8px;">
-        Submit Service Request
+        {{ __('ui.citizen.submit_service_request') }}
     </h1>
 
     <p style="color:#6b7280; margin-bottom:24px;">
-        You are applying for: <strong>{{ $service->name }}</strong>
+        {{ __('ui.citizen.applying_for') }} <strong>{{ $service->localized('name') }}</strong>
     </p>
 
     <div class="card" style="background:#f9fafb; margin-bottom:24px;">
-        <h2 style="font-size:18px; font-weight:700; margin-bottom:10px;">Service Summary</h2>
+        <h2 style="font-size:18px; font-weight:700; margin-bottom:10px;">{{ __('ui.citizen.service_summary') }}</h2>
 
-        <p><strong>Office:</strong> {{ $service->office->name ?? 'N/A' }}</p>
-        <p><strong>Category:</strong> {{ $service->category->name ?? 'N/A' }}</p>
-        <p><strong>Price:</strong> ${{ number_format($service->price, 2) }}</p>
+        <p><strong>{{ __('ui.citizen.office_colon') }}</strong> {{ $service->office?->localized('name') ?? __('ui.na') }}</p>
+        <p><strong>{{ __('ui.table.category') }}:</strong> {{ $service->category?->localized('name') ?? __('ui.na') }}</p>
+        <p><strong>{{ __('ui.table.price') }}:</strong> {{ localized_money($service->price) }}</p>
         <p>
-            <strong>Duration:</strong>
-            {{ $service->estimated_duration_minutes ? $service->estimated_duration_minutes . ' minutes' : 'N/A' }}
+            <strong>{{ __('ui.citizen.duration') }}:</strong>
+            {{ $service->estimated_duration_minutes ? $service->estimated_duration_minutes . ' ' . __('ui.citizen.minutes') : __('ui.na') }}
         </p>
     </div>
 
     @if ($errors->any())
         <div style="background:#fee2e2; color:#991b1b; padding:14px; border-radius:10px; margin-bottom:20px;">
-            <strong>Please fix the following errors:</strong>
+            <strong>{{ __('ui.citizen.fix_errors') }}</strong>
             <ul style="margin-top:8px; padding-left:20px;">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -45,18 +46,18 @@
 
         <div style="margin-bottom:20px;">
             <label style="font-weight:600; display:block; margin-bottom:8px;">
-                Additional Information / Notes
+                {{ __('ui.citizen.additional_info') }}
             </label>
 
             <textarea name="notes"
                       rows="5"
-                      placeholder="Write any information related to your request..."
+                      placeholder="{{ __('ui.citizen.notes_placeholder') }}"
                       style="width:100%; border:1px solid #d1d5db; border-radius:10px; padding:12px;">{{ old('notes') }}</textarea>
         </div>
 
         <div style="margin-bottom:20px;">
             <label style="font-weight:600; display:block; margin-bottom:8px;">
-                Upload Required Documents
+                {{ __('ui.citizen.upload_required_docs') }}
             </label>
 
             <input type="file"
@@ -65,21 +66,22 @@
                    style="width:100%; border:1px solid #d1d5db; border-radius:10px; padding:12px; background:white;">
 
             <p style="color:#6b7280; font-size:14px; margin-top:8px;">
-                Allowed files: PDF, JPG, PNG, DOC, DOCX. Max size: 5MB each.
+                {{ __('ui.citizen.allowed_files_hint') }}
             </p>
         </div>
 
-        <div style="display:flex; gap:12px; margin-top:28px;">
+        <div class="form-actions">
             <a href="{{ route('citizen.services.show', $service) }}"
                class="btn-secondary"
                style="text-decoration:none;">
-                Back
+                {{ __('ui.back') }}
             </a>
 
             <button type="submit" class="btn-primary">
-                Submit Request
+                {{ __('ui.citizen.submit_request') }}
             </button>
         </div>
     </form>
 </div>
+</x-form-page>
 @endsection

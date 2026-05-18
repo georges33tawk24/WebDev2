@@ -140,11 +140,11 @@
         </tr>
         <tr>
             <td>Service</td>
-            <td>{{ $serviceRequest->service?->name ?? '—' }}</td>
+            <td>{{ $serviceRequest->service?->localized('name') ?? '—' }}</td>
         </tr>
         <tr>
             <td>Government Office</td>
-            <td>{{ $serviceRequest->office?->name ?? '—' }}</td>
+            <td>{{ $serviceRequest->office?->localized('name') ?? '—' }}</td>
         </tr>
         <tr>
             <td>Date</td>

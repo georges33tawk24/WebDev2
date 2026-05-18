@@ -15,6 +15,6 @@ class EnsureTwoFactorVerified
         }
 
         return redirect()->route('2fa.verify')
-            ->withErrors(['code' => 'Please complete two-factor verification first.']);
+            ->withErrors(['code' => __('ui.flash.2fa_required')]);
     }
 }

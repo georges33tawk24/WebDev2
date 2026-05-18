@@ -29,7 +29,7 @@ class ServiceRequestSubmitted extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Service Request Submitted Successfully',
+            subject: __('ui.mail.request_submitted_title'),
         );
     }
 

@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureTwoFactorVerified;
 use App\Http\Middleware\NormalizeLocalDevelopmentHost;
 use App\Http\Middleware\SecureHeaders;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,6 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(prepend: [
             NormalizeLocalDevelopmentHost::class,
+        ]);
+
+        // After StartSession so session('locale') is read/written correctly.
+        $middleware->web(append: [
+            SetLocale::class,
         ]);
 
         $middleware->append(SecureHeaders::class);

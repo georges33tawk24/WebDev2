@@ -1,37 +1,51 @@
 @extends('layouts.admin')
 
-@section('title', 'Create Category')
-@section('page-title', 'Create New Category')
+@section('title', __('ui.admin.create_category'))
+@section('page-title', __('ui.admin.create_category'))
 
 @section('content')
+<x-form-page>
 <div class="page-header">
     <div>
-        <div class="page-title">Create New Category</div>
-        <div class="page-subtitle">Add a new service category to the platform</div>
+        <div class="page-title">{{ __('ui.admin.create_category') }}</div>
+        <div class="page-subtitle">{{ __('ui.admin.create_category_sub') }}</div>
     </div>
-    <a href="{{ route('admin.categories.index') }}" class="btn-secondary">Back to Categories</a>
+    <a href="{{ route('admin.categories.index') }}" class="btn-secondary">{{ __('ui.admin.back_categories') }}</a>
 </div>
 
-<div class="card" style="max-width: 700px;">
+<div class="card">
     <form method="POST" action="{{ route('admin.categories.store') }}">
         @csrf
 
         <div class="form-group">
-            <label class="form-label">Category Name *</label>
-            <input type="text" name="name" class="form-control" value="{{ old('name') }}" placeholder="e.g. Civil Services">
+            <label class="form-label">{{ __('ui.admin.category_name') }} *</label>
+            <input type="text" name="name" class="form-control" value="{{ old('name') }}" placeholder="{{ __('ui.placeholders.category_name') }}">
             @error('name') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div class="form-group">
-            <label class="form-label">Description</label>
-            <textarea name="description" class="form-control" rows="4" placeholder="Brief description of this category...">{{ old('description') }}</textarea>
+            <label class="form-label">{{ __('ui.admin.name_ar') }}</label>
+            <input type="text" name="name_ar" class="form-control" value="{{ old('name_ar') }}" dir="rtl">
+            @error('name_ar') <div class="form-error">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">{{ __('ui.admin.description') }}</label>
+            <textarea name="description" class="form-control" rows="4" placeholder="{{ __('ui.placeholders.category_description') }}">{{ old('description') }}</textarea>
             @error('description') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
-        <div style="display:flex; gap:12px; margin-top:8px;">
-            <button type="submit" class="btn-primary">Create Category</button>
-            <a href="{{ route('admin.categories.index') }}" class="btn-secondary">Cancel</a>
+        <div class="form-group">
+            <label class="form-label">{{ __('ui.admin.description_ar') }}</label>
+            <textarea name="description_ar" class="form-control" rows="4" dir="rtl">{{ old('description_ar') }}</textarea>
+            @error('description_ar') <div class="form-error">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">{{ __('ui.admin.create_category_btn') }}</button>
+            <a href="{{ route('admin.categories.index') }}" class="btn-secondary">{{ __('ui.cancel') }}</a>
         </div>
     </form>
 </div>
+</x-form-page>
 @endsection

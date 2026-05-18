@@ -1,10 +1,10 @@
-<x-layouts.auth-flow title="ID Upload — WebDev2">
-    <h1 class="twofa-title">{{ ($required ?? true) ? 'Upload your ID' : 'Update your ID' }}</h1>
+<x-layouts.auth-flow title="{{ __('ui.auth.upload_id') }} — {{ __('ui.app_name') }}">
+    <h1 class="twofa-title">{{ ($required ?? true) ? __('ui.auth.upload_id') : __('ui.auth.update_id') }}</h1>
     <p class="twofa-sub">
         @if ($required ?? true)
-            We need a photo of your ID to verify your citizen account. You must upload an ID before using the portal.
+            {{ __('ui.auth.id_required_sub') }}
         @else
-            Upload a new ID document to replace the one on file. Information will be read automatically when OCR is configured.
+            {{ __('ui.auth.id_optional_sub') }}
         @endif
     </p>
 
@@ -14,7 +14,7 @@
 
     <form method="POST" action="{{ route('id-upload.store') }}" enctype="multipart/form-data" class="auth-form">
         @csrf
-        <label class="field-label" for="id_document">ID document (JPG, PNG, or PDF)</label>
+        <label class="field-label" for="id_document">{{ __('ui.auth.id_file_label') }}</label>
         <div class="input-shell input-shell--file">
             <input id="id_document" type="file" name="id_document" accept=".jpg,.jpeg,.png,.pdf" required class="input-file-native">
         </div>
@@ -24,17 +24,17 @@
         @enderror
 
         <div id="id-preview" class="id-preview" hidden>
-            <p class="field-hint-block">Detected from your ID:</p>
-            <p><strong>Name:</strong> <span id="preview-name">—</span></p>
-            <p><strong>Date of birth:</strong> <span id="preview-dob">—</span></p>
+            <p class="field-hint-block">{{ __('ui.auth.detected_from_id') }}</p>
+            <p><strong>{{ __('ui.auth.name') }}:</strong> <span id="preview-name">—</span></p>
+            <p><strong>{{ __('ui.auth.date_of_birth') }}:</strong> <span id="preview-dob">—</span></p>
         </div>
 
-        <button type="submit" class="btn-primary btn-block">{{ ($required ?? true) ? 'Upload and continue' : 'Save new ID' }}</button>
+        <button type="submit" class="btn-primary btn-block">{{ ($required ?? true) ? __('ui.auth.upload_continue') : __('ui.auth.save_new_id') }}</button>
     </form>
 
     @if (! ($required ?? true))
         <p style="margin-top: 16px; text-align: center;">
-            <a href="{{ route('citizen.dashboard') }}" class="auth-link">← Back to dashboard</a>
+            <a href="{{ route('citizen.dashboard') }}" class="auth-link">{{ __('ui.auth.back_dashboard') }}</a>
         </p>
     @endif
 

@@ -1,14 +1,14 @@
 @extends('layouts.admin')
 
-@section('title', 'Payments')
-@section('page-title', 'Payments')
+@section('title', __('ui.citizen.payments_title'))
+@section('page-title', __('ui.citizen.payments_title'))
 
 @section('content')
 <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
         <div>
-            <h1 style="font-size:28px; font-weight:700;">Payments</h1>
-            <p style="color:#6b7280;">Manage and complete your service payments.</p>
+            <h1 style="font-size:28px; font-weight:700;">{{ __('ui.citizen.payments_title') }}</h1>
+            <p style="color:#6b7280;">{{ __('ui.citizen.manage_payments_sub') }}</p>
         </div>
     </div>
 
@@ -23,29 +23,29 @@
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
                     <h2 style="font-size:20px; font-weight:700;">
-                        {{ $request->service->name ?? 'Service removed' }}
+                        {{ $request->service?->localized('name') ?? __('ui.citizen.service_removed') }}
                     </h2>
 
                     <p style="color:#6b7280;">
-                        Ref: {{ $request->reference_number }}
+                        {{ __('ui.citizen.ref') }}: {{ $request->reference_number }}
                     </p>
 
                     <p style="color:#6b7280;">
-                        Price:
-                        ${{ number_format($request->service->price ?? 0, 2) }}
+                        {{ __('ui.table.price') }}:
+                        {{ localized_money($request->service->price ?? 0) }}
                     </p>
                 </div>
 
                 <a href="{{ route('citizen.payments.show', $request) }}"
                    class="btn-primary"
                    style="text-decoration:none;">
-                    Pay Now
+                    {{ __('ui.citizen.pay_now') }}
                 </a>
             </div>
         </div>
     @empty
         <div style="text-align:center; padding:40px; color:#6b7280;">
-            No payments available.
+            {{ __('ui.citizen.no_payments') }}
         </div>
     @endforelse
 </div>

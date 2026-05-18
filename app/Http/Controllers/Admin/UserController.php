@@ -62,7 +62,7 @@ class UserController extends Controller
 
         return redirect()
             ->route('admin.users.index')
-            ->with('success', 'Office staff account created successfully.');
+            ->with('success', __('ui.flash.staff_created'));
     }
 
     public function toggleStatus(User $user)
@@ -71,6 +71,6 @@ class UserController extends Controller
             'email_verified_at' => $user->email_verified_at ? null : now(),
         ]);
 
-        return back()->with('success', 'User status updated successfully!');
+        return back()->with('success', __('ui.flash.user_status_updated'));
     }
 }

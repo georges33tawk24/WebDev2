@@ -1,30 +1,30 @@
 @extends('layouts.admin')
 
-@section('title', 'Government Offices Map')
-@section('page-title', 'Government Offices Map')
+@section('title', __('ui.citizen.maps_title'))
+@section('page-title', __('ui.citizen.maps_title'))
 
 @section('content')
 
 <div class="card">
     <h1 style="font-size:28px; font-weight:700; margin-bottom:8px;">
-        Government Offices Map
+        {{ __('ui.citizen.maps_title') }}
     </h1>
 
     <p style="color:#6b7280; margin-bottom:20px;">
-        Find nearby government offices and explore their services.
+        {{ __('ui.citizen.maps_sub') }}
     </p>
 
     <div style="display:flex; gap:12px; margin-bottom:20px;">
 
         <input type="text"
                id="officeSearch"
-               placeholder="Search offices..."
+               placeholder="{{ __('ui.citizen.search_offices') }}"
                style="flex:1; border:1px solid #d1d5db; border-radius:10px; padding:12px;">
 
         <button type="button"
                 onclick="findNearestOffice()"
                 class="btn-primary">
-            Find Nearest Office
+            {{ __('ui.citizen.find_nearest') }}
         </button>
 
     </div>
@@ -34,7 +34,20 @@
     </div>
 </div>
 
+@php
+    $mapsI18n = [
+        'address' => __('ui.citizen.address_colon'),
+        'workingHours' => __('ui.citizen.working_hours_colon'),
+        'noAddress' => __('ui.citizen.no_address'),
+        'viewServices' => __('ui.citizen.view_services'),
+        'notAvailable' => __('ui.citizen.not_available'),
+        'yourLocation' => __('ui.citizen.your_location'),
+        'geolocationUnsupported' => __('ui.citizen.geolocation_unsupported'),
+        'locationDenied' => __('ui.citizen.location_denied'),
+    ];
+@endphp
 <script>
+    const mapsI18n = @json($mapsI18n);
     const offices = @json($offices);
 
     let map;
@@ -79,12 +92,12 @@
                         </h3>
 
                         <p style="margin-bottom:6px;">
-                            <strong>Address:</strong>
-                            ${office.address ?? 'No address available'}
+                            <strong>${mapsI18n.address}</strong>
+                            ${office.address ?? mapsI18n.noAddress}
                         </p>
 
                         <p style="margin-bottom:10px;">
-                            <strong>Working Hours:</strong>
+                            <strong>${mapsI18n.workingHours}</strong>
                             ${formatWorkingHours(office.working_hours)}
                         </p>
 
@@ -95,7 +108,7 @@
                                   padding:8px 12px;
                                   border-radius:8px;
                                   text-decoration:none;">
-                            View Services
+                            ${mapsI18n.viewServices}
                         </a>
 
                     </div>
@@ -123,7 +136,7 @@
     function formatWorkingHours(value) {
 
         if (!value) {
-            return 'Not available';
+            return mapsI18n.notAvailable;
         }
 
         try {
@@ -166,7 +179,7 @@
     function findNearestOffice() {
 
         if (!navigator.geolocation) {
-            alert("Geolocation is not supported by your browser.");
+            alert(mapsI18n.geolocationUnsupported);
             return;
         }
 
@@ -184,7 +197,7 @@
             userMarker = new google.maps.Marker({
                 position: userLocation,
                 map: map,
-                title: "Your Location",
+                title: mapsI18n.yourLocation,
                 icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
             });
 
@@ -216,7 +229,7 @@
 
         }, () => {
 
-            alert("Location permission denied.");
+            alert(mapsI18n.locationDenied);
 
         });
     }
@@ -254,7 +267,7 @@
     </script>
 @else
     <p class="field-hint-block" style="margin-top:12px; color:#b45309;">
-        Google Maps is not configured. Add <code>GOOGLE_MAPS_API_KEY</code> to your <code>.env</code> file.
+        {{ __('ui.citizen.google_maps_env_hint') }}
     </p>
 @endif
 

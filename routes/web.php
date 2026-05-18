@@ -3,8 +3,13 @@
 use App\Http\Controllers\Api\IdDocumentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LocaleController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/locale/{locale}', [LocaleController::class, 'switch'])
+    ->whereIn('locale', ['en', 'ar'])
+    ->name('locale.switch');
 
 Route::get('/', function () {
     return redirect()->route(AuthController::homeRouteFor(Auth::user()));

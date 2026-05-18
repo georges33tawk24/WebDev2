@@ -72,7 +72,7 @@ class AuthController extends Controller
             'date_of_birth' => $finalDob,
         ]);
 
-        return redirect()->route('login')->with('status', 'Registration successful. Please login.');
+        return redirect()->route('login')->with('status', __('ui.flash.registration_success_login'));
     }
 
     public function login(Request $request): RedirectResponse
@@ -80,7 +80,7 @@ class AuthController extends Controller
         $throttleKey = Str::lower($request->string('email')->toString()).'|'.$request->ip();
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             throw ValidationException::withMessages([
-                'email' => 'Too many login attempts. Please try again in a minute.',
+                'email' => __('ui.flash.login_throttle'),
             ]);
         }
 
@@ -92,7 +92,7 @@ class AuthController extends Controller
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             RateLimiter::hit($throttleKey, 60);
 
-            return back()->withErrors(['email' => 'Invalid credentials.'])->onlyInput('email');
+            return back()->withErrors(['email' => __('ui.flash.invalid_credentials')])->onlyInput('email');
         }
 
         RateLimiter::clear($throttleKey);
@@ -116,10 +116,7 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login')->with(
-            'status',
-            'You can complete two-factor authentication next time you sign in.'
-        );
+        return redirect()->route('login')->with('status', __('ui.flash.defer_2fa'));
     }
 
     public function showAccountProtected(Request $request): View|RedirectResponse
@@ -230,7 +227,7 @@ class AuthController extends Controller
         $throttleKey = '2fa|'.$request->user()->id.'|'.$request->ip();
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             throw ValidationException::withMessages([
-                'code' => 'Too many verification attempts. Please wait a minute and try again.',
+                'code' => __('ui.flash.2fa_throttle'),
             ]);
         }
 
@@ -248,7 +245,7 @@ class AuthController extends Controller
         if (! $record) {
             RateLimiter::hit($throttleKey, 60);
 
-            return back()->withErrors(['code' => 'Invalid or expired verification code.']);
+            return back()->withErrors(['code' => __('ui.flash.invalid_2fa_code')]);
         }
 
         RateLimiter::clear($throttleKey);
@@ -263,7 +260,7 @@ class AuthController extends Controller
         if ($user?->needsIdDocument()) {
             return redirect()
                 ->route('id-upload')
-                ->with('status', 'Please upload your ID document to continue.');
+                ->with('status', __('ui.flash.id_upload_required'));
         }
 
         return redirect()->route('account.protected');
@@ -288,7 +285,7 @@ class AuthController extends Controller
         $this->issueTwoFactorCode($user);
         $this->recordTwoFactorCodeSend($request);
 
-        return redirect()->route('2fa.verify')->with('status', 'A new verification code was sent.');
+        return redirect()->route('2fa.verify')->with('status', __('ui.flash.2fa_code_sent'));
     }
 
     private function resendCooldownSeconds(Request $request): int
@@ -313,7 +310,7 @@ class AuthController extends Controller
         }
 
         return redirect()->route('2fa.verify')->withErrors([
-            'resend' => "Please wait {$seconds} seconds before requesting another code.",
+            'resend' => __('ui.flash.2fa_resend_wait', ['seconds' => localized_number($seconds)]),
         ]);
     }
 
@@ -394,7 +391,7 @@ class AuthController extends Controller
 
         return redirect()
             ->route(self::homeRouteFor($request->user()))
-            ->with('status', 'ID uploaded and verified successfully.');
+            ->with('status', __('ui.flash.id_uploaded_verified'));
     }
 
     public function socialLogin(string $provider): RedirectResponse
@@ -402,7 +399,7 @@ class AuthController extends Controller
         $config = config("services.{$provider}");
         if (! is_array($config) || empty($config['client_id']) || empty($config['client_secret']) || empty($config['redirect'])) {
             return redirect()->route('login')->withErrors([
-                'email' => ucfirst($provider).' OAuth is not configured in .env yet.',
+                'email' => __('ui.flash.oauth_not_configured', ['provider' => ucfirst($provider)]),
             ]);
         }
 
@@ -419,7 +416,7 @@ class AuthController extends Controller
         if (request()->filled('error')) {
             return $this->redirectToLoginWithOAuthError(
                 $provider,
-                (string) request('error_description', 'Sign-in was cancelled. Please try again.')
+                (string) request('error_description', __('ui.flash.oauth_cancelled'))
             );
         }
 
@@ -430,7 +427,7 @@ class AuthController extends Controller
         if (! is_string($incomingState) || $incomingState === '' || ! is_string($expectedState) || ! hash_equals($expectedState, $incomingState)) {
             return $this->redirectToLoginWithOAuthError(
                 $provider,
-                'Invalid OAuth state. Please try again from the same browser tab (use http://localhost:8000).'
+                __('ui.flash.oauth_invalid_state')
             );
         }
 
@@ -439,14 +436,14 @@ class AuthController extends Controller
         } catch (\Throwable) {
             return $this->redirectToLoginWithOAuthError(
                 $provider,
-                ucfirst($provider).' sign-in failed. Check OAuth credentials in .env and try again.'
+                __('ui.flash.oauth_failed', ['provider' => ucfirst($provider)])
             );
         }
 
         $providerUserId = (string) ($socialUser['id'] ?? '');
         if ($providerUserId === '') {
             return redirect()->route('login')->withErrors([
-                'email' => ucfirst($provider).' did not return a valid user id.',
+                'email' => __('ui.flash.oauth_no_user_id', ['provider' => ucfirst($provider)]),
             ]);
         }
 
@@ -549,7 +546,7 @@ class AuthController extends Controller
 
         return redirect()
             ->route('2fa.verify')
-            ->with('status', 'Email saved. Check your inbox for a verification code.');
+            ->with('status', __('ui.flash.email_saved_2fa'));
     }
 
     private function loginUserAfterAuth(User $user, ?Request $request = null): RedirectResponse

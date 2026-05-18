@@ -78,7 +78,7 @@ class RequestController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Request status updated successfully!');
+        return back()->with('success', __('ui.flash.status_updated'));
     }
 
     public function uploadDocument(Request $request, ServiceRequest $serviceRequest)
@@ -98,6 +98,6 @@ class RequestController extends Controller
             'size'          => $request->file('document')->getSize(),
         ]);
 
-        return back()->with('success', 'Document uploaded successfully!');
+        return back()->with('success', __('ui.flash.document_uploaded'));
     }
 }

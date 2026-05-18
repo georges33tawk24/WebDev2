@@ -106,6 +106,9 @@ class DemoDataSeeder extends Seeder
 
     private function seedOffices(): void
     {
+        $arCatalog = require database_path('data/localized_catalog_ar.php');
+        $officeAr = $arCatalog['offices'];
+
         $definitions = [
             'beirut' => [
                 'name' => 'Beirut Municipal Council — Sanayeh',
@@ -184,7 +187,7 @@ class DemoDataSeeder extends Seeder
         foreach ($definitions as $key => $data) {
             $this->offices[$key] = Office::query()->updateOrCreate(
                 ['name' => $data['name']],
-                array_merge($data, [
+                array_merge($data, $officeAr[$key] ?? [], [
                     'working_hours' => [
                         'days' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
                         'hours' => '8:00–15:00',
@@ -225,6 +228,9 @@ class DemoDataSeeder extends Seeder
 
     private function seedCategories(): void
     {
+        $arCatalog = require database_path('data/localized_catalog_ar.php');
+        $categoryAr = $arCatalog['categories'];
+
         $definitions = [
             'civil' => ['name' => 'Civil Registration & Extracts', 'description' => 'Birth, family, and residence records.'],
             'licenses' => ['name' => 'Municipal Licenses & Permits', 'description' => 'Shop signage, outdoor seating, events.'],
@@ -239,13 +245,21 @@ class DemoDataSeeder extends Seeder
         foreach ($definitions as $key => $data) {
             $this->categories[$key] = Category::query()->updateOrCreate(
                 ['name' => $data['name']],
-                ['description' => $data['description']]
+                array_merge(
+                    ['description' => $data['description']],
+                    $categoryAr[$key] ?? []
+                )
             );
         }
     }
 
     private function seedServices(): void
     {
+        $arCatalog = require database_path('data/localized_catalog_ar.php');
+        $serviceNamesAr = $arCatalog['service_names'];
+        $descriptionArTemplate = $arCatalog['service_description_ar'];
+        $requiredDocumentsAr = $arCatalog['required_documents_ar'];
+
         $catalog = [
             ['office' => 'beirut', 'category' => 'civil', 'name' => 'Extract of Residence (إخراج قيد)', 'price' => 15.00, 'minutes' => 20],
             ['office' => 'beirut', 'category' => 'licenses', 'name' => 'Shop Signage Permit', 'price' => 120.00, 'minutes' => 45],
@@ -273,6 +287,7 @@ class DemoDataSeeder extends Seeder
         ];
 
         foreach ($catalog as $item) {
+            $municipality = $this->offices[$item['office']]->municipality ?? '';
             $service = Service::query()->updateOrCreate(
                 [
                     'office_id' => $this->offices[$item['office']]->id,
@@ -280,10 +295,17 @@ class DemoDataSeeder extends Seeder
                 ],
                 [
                     'category_id' => $this->categories[$item['category']]->id,
-                    'description' => 'Municipal e-service for residents of '.$this->offices[$item['office']]->municipality.'.',
+                    'name_ar' => $serviceNamesAr[$item['name']] ?? null,
+                    'description' => 'Municipal e-service for residents of '.$municipality.'.',
+                    'description_ar' => str_replace(
+                        ':municipality',
+                        $this->offices[$item['office']]->municipality_ar ?? $municipality,
+                        $descriptionArTemplate
+                    ),
                     'price' => $item['price'],
                     'estimated_duration_minutes' => $item['minutes'],
                     'required_documents' => ['National ID or passport', 'Proof of address', 'Supporting forms if applicable'],
+                    'required_documents_ar' => $requiredDocumentsAr,
                     'is_active' => true,
                 ]
             );

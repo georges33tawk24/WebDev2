@@ -1,24 +1,24 @@
-<x-layouts.auth-flow title="Email for verification — WebDev2">
-    <h1 class="twofa-title">Add your email</h1>
+<x-layouts.auth-flow :title="__('ui.auth.collect_email') . ' — ' . __('ui.app_name')">
+    <h1 class="twofa-title">{{ __('ui.auth.collect_email') }}</h1>
     <p class="twofa-sub">
         @if (auth()->user()->socialAccounts()->exists())
-            Your sign-in provider did not share a usable email. Enter a real address so we can send your 6-digit verification code.
+            {{ __('ui.auth.collect_email_social_sub') }}
         @else
-            We cannot send a verification code to your current email address. Enter a real address to continue.
+            {{ __('ui.auth.collect_email_invalid_sub') }}
         @endif
     </p>
 
     <form method="POST" action="{{ route('2fa.collect-email.store') }}" class="auth-form auth-form--split">
         @csrf
 
-        <label class="field-label" for="email">Email address</label>
+        <label class="field-label" for="email">{{ __('ui.auth.email') }}</label>
         <div class="input-shell">
             <input
                 id="email"
                 type="email"
                 name="email"
                 value="{{ old('email') }}"
-                placeholder="you@gmail.com"
+                placeholder="{{ __('ui.placeholders.email_gmail') }}"
                 required
                 autocomplete="email"
                 autofocus
@@ -29,6 +29,6 @@
             <p class="twofa-inline-error">{{ $message }}</p>
         @enderror
 
-        <button type="submit" class="btn-primary btn-block twofa-submit">Continue</button>
+        <button type="submit" class="btn-primary btn-block twofa-submit">{{ __('ui.auth.continue') }}</button>
     </form>
 </x-layouts.auth-flow>

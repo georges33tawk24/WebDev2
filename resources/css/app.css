@@ -1077,3 +1077,163 @@ textarea {
         border-radius: 8px;
     }
 }
+
+/* ── Locale toggle switch ── */
+.locale-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.35rem;
+    border-radius: 999px;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s;
+}
+
+.locale-toggle:hover {
+    opacity: 0.92;
+}
+
+.locale-toggle:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.85);
+    outline-offset: 2px;
+}
+
+.locale-toggle__label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    opacity: 0.55;
+    transition: opacity 0.2s, color 0.2s;
+}
+
+.locale-toggle--en .locale-toggle__label--en,
+.locale-toggle--ar .locale-toggle__label--ar {
+    opacity: 1;
+}
+
+.locale-toggle__label--en,
+.locale-toggle__label--ar {
+    min-width: 1.35rem;
+    text-align: center;
+}
+
+/* Admin / citizen / staff top bar (blue navbar) */
+.navbar .locale-toggle {
+    color: #fff;
+    background: rgba(0, 0, 0, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    padding: 5px 8px;
+    border-radius: 999px;
+}
+
+.navbar .locale-toggle:hover {
+    background: rgba(0, 0, 0, 0.28);
+}
+
+.navbar .locale-toggle:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.navbar .locale-toggle__track {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.locale-toggle__track {
+    position: relative;
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.28);
+    transition: background 0.2s;
+}
+
+.locale-toggle__thumb {
+    position: absolute;
+    top: 0.125rem;
+    left: 0.125rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.locale-toggle--ar .locale-toggle__thumb {
+    transform: translateX(1.25rem);
+}
+
+.auth-split-topbar,
+.auth-flow-topbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.75rem 1rem 0;
+}
+
+.auth-flow-topbar .locale-toggle,
+.auth-split-topbar .locale-toggle {
+    color: #374151;
+}
+
+.auth-flow-topbar .locale-toggle:focus-visible,
+.auth-split-topbar .locale-toggle:focus-visible {
+    outline-color: #1a56db;
+}
+
+.auth-flow-topbar .locale-toggle__track,
+.auth-split-topbar .locale-toggle__track {
+    background: #d1d5db;
+}
+
+.auth-flow-topbar .locale-toggle--en .locale-toggle__label--en,
+.auth-flow-topbar .locale-toggle--ar .locale-toggle__label--ar,
+.auth-split-topbar .locale-toggle--en .locale-toggle__label--en,
+.auth-split-topbar .locale-toggle--ar .locale-toggle__label--ar {
+    color: #1a56db;
+}
+
+/* ── RTL (Arabic) ── */
+html[dir='rtl'] body,
+html[dir='rtl'] .auth-split-body,
+html[dir='rtl'] .auth-flow-body {
+    font-family: 'Cairo', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+html[dir='rtl'] .auth-split-grid {
+    direction: rtl;
+}
+
+html[dir='rtl'] .input-shell input:not([type='file']) {
+    padding: 0.72rem 0 0.72rem 0.5rem;
+}
+
+html[dir='rtl'] .twofa-back-row .btn-icon-back svg {
+    transform: scaleX(-1);
+}
+
+html[dir='rtl'] .auth-row-between {
+    flex-direction: row-reverse;
+}
+
+html[dir='rtl'] .inline-checkbox {
+    flex-direction: row-reverse;
+}
+
+html[dir='rtl'] .social-btn {
+    flex-direction: row-reverse;
+}
+
+html[dir=rtl] thead th {
+    text-align: right;
+}
+
+html[dir=rtl] .table-wrapper table {
+    direction: rtl;
+}
+

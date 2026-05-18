@@ -109,9 +109,27 @@
                             </p>
                         </div>
 
-                        <span style="background:#fef3c7; color:#92400e; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;">
-                            {{ ucfirst($request->status) }}
-                        </span>
+                       <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+
+    <span style="background:#fef3c7; color:#92400e; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;">
+        {{ ucfirst($request->status) }}
+    </span>
+
+    @if($request->payments->where('status', 'paid')->count() > 0)
+
+        <span style="background:#dcfce7; color:#166534; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;">
+            Paid
+        </span>
+
+    @else
+
+        <span style="background:#fee2e2; color:#991b1b; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;">
+            Unpaid
+        </span>
+
+    @endif
+
+</div>
 
                     </div>
                 </div>

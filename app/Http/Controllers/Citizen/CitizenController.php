@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Citizen;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Document;
+use App\Models\Payment;
 use App\Models\Office;
 use App\Models\RequestStatusHistory;
 use App\Models\Service;
@@ -19,14 +20,14 @@ class CitizenController extends Controller
     {
         $userId = Auth::id();
 
-        $activeRequests = ServiceRequest::with(['service', 'office'])
+        $activeRequests = ServiceRequest::with(['service', 'office','payments'])
             ->where('citizen_id', $userId)
             ->whereNotIn('status', ['completed', 'rejected'])
             ->latest()
             ->take(5)
             ->get();
 
-        $recentRequests = ServiceRequest::with(['service', 'office'])
+        $recentRequests = ServiceRequest::with(['service', 'office','payments'])
             ->where('citizen_id', $userId)
             ->latest()
             ->take(5)
@@ -78,7 +79,7 @@ class CitizenController extends Controller
 
     public function requests()
     {
-        $requests = ServiceRequest::with(['service', 'office', 'statusHistories'])
+        $requests = ServiceRequest::with(['service', 'office', 'statusHistories','payments'])
             ->where('citizen_id', Auth::id())
             ->latest()
             ->paginate(10);
@@ -142,10 +143,14 @@ class CitizenController extends Controller
             ->route('citizen.requests')
             ->with('success', 'Request submitted successfully. Reference number: ' . $serviceRequest->reference_number);
     }
-    public function payments()
+   
+   public function payments()
 {
-    $requests = ServiceRequest::with(['service', 'office'])
+    $requests = ServiceRequest::with(['service', 'office', 'payments'])
         ->where('citizen_id', Auth::id())
+        ->whereDoesntHave('payments', function ($query) {
+            $query->where('status', 'paid');
+        })
         ->latest()
         ->get();
 
@@ -157,8 +162,26 @@ public function paymentPage(ServiceRequest $serviceRequest)
     return view('citizen.payment-show', compact('serviceRequest'));
 }
 
-public function processPayment(ServiceRequest $serviceRequest)
+public function processPayment(Request $request, ServiceRequest $serviceRequest)
 {
+    $request->validate([
+        'card_holder' => ['required', 'string', 'max:255'],
+        'card_number' => ['required', 'digits:16'],
+        'expiry_date' => ['required', 'regex:/^(0[1-9]|1[0-2])\/\d{2}$/'],
+        'cvv' => ['required', 'digits:3'],
+    ]);
+
+    Payment::create([
+        'service_request_id' => $serviceRequest->id,
+        'user_id' => Auth::id(),
+        'method' => 'card',
+        'amount' => $serviceRequest->service->price ?? 0,
+        'currency' => 'USD',
+        'status' => 'paid',
+        'gateway_reference' => 'LOCAL-' . strtoupper(\Illuminate\Support\Str::random(10)),
+        'paid_at' => now(),
+    ]);
+
     return redirect()
         ->route('citizen.payments')
         ->with('success', 'Payment completed successfully.');
@@ -166,9 +189,21 @@ public function processPayment(ServiceRequest $serviceRequest)
 
 public function maps()
 {
-    $offices = Office::all();
+    $offices = Office::select(
+        'id',
+        'name',
+        'address',
+        'working_hours',
+        'latitude',
+        'longitude'
+    )
+    ->whereNotNull('latitude')
+    ->whereNotNull('longitude')
+    ->get();
 
-    return view('citizen.maps', compact('offices'));
+    $googleMapsApiKey = env('GOOGLE_MAPS_API_KEY');
+
+    return view('citizen.maps', compact('offices', 'googleMapsApiKey'));
 }
 
 public function appointments()

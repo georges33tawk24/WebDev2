@@ -50,6 +50,30 @@ class ServiceRequest extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function isPaid(): bool
+    {
+        if ($this->relationLoaded('payments')) {
+            return $this->payments->contains(fn (Payment $payment) => $payment->status === 'paid');
+        }
+
+        return $this->payments()->where('status', 'paid')->exists();
+    }
+
+    public function latestPaidPayment(): ?Payment
+    {
+        if ($this->relationLoaded('payments')) {
+            return $this->payments
+                ->where('status', 'paid')
+                ->sortByDesc(fn (Payment $payment) => $payment->paid_at ?? $payment->created_at)
+                ->first();
+        }
+
+        return $this->payments()
+            ->where('status', 'paid')
+            ->latest('paid_at')
+            ->first();
+    }
+
     public function appointments()
     {
         return $this->hasMany(Appointment::class);

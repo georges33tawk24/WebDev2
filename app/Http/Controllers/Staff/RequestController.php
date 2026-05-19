@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\ServiceRequest;
 use App\Mail\ServiceRequestStatusUpdated;
+use App\Services\LiveUpdateService;
+use App\Services\NotificationService;
 use App\Services\PdfGenerationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -32,7 +34,7 @@ class RequestController extends Controller
     {
         $this->authorizeStaffOffice($serviceRequest);
 
-        $serviceRequest->load(['citizen', 'service', 'office', 'documents', 'statusHistories.changedBy']);
+        $serviceRequest->load(['citizen', 'service', 'office', 'documents', 'statusHistories.changedBy', 'payments']);
 
         return view('staff.requests.show', compact('serviceRequest'));
     }
@@ -91,6 +93,13 @@ class RequestController extends Controller
 
         $serviceRequest->loadMissing(['citizen', 'service', 'office']);
 
+        app(NotificationService::class)->requestStatusUpdated(
+            $serviceRequest,
+            $oldStatus,
+            $newStatus,
+            $validated['comment'] ?? null,
+        );
+
         if ($serviceRequest->citizen?->email) {
             Mail::to($serviceRequest->citizen->email)->send(
                 new ServiceRequestStatusUpdated(
@@ -100,6 +109,16 @@ class RequestController extends Controller
                 )
             );
         }
+
+        $live = app(LiveUpdateService::class);
+
+        if ($serviceRequest->citizen) {
+            $live->bump($serviceRequest->citizen);
+        }
+
+        $live->bumpMany(
+            app(NotificationService::class)->officeStaffFor((int) $serviceRequest->office_id),
+        );
 
         return back()->with('success', __('ui.flash.status_updated'));
     }
@@ -122,6 +141,8 @@ class RequestController extends Controller
             'mime_type'     => $request->file('document')->getMimeType(),
             'size'          => $request->file('document')->getSize(),
         ]);
+
+        app(NotificationService::class)->staffDocumentUploaded($serviceRequest);
 
         return back()->with('success', __('ui.flash.document_uploaded'));
     }

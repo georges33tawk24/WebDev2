@@ -29,8 +29,10 @@
             min-height: 100vh;
         }
 
-        html[dir="rtl"] body {
+        html[dir="rtl"] body,
+        body.is-rtl {
             font-family: 'Cairo', 'Inter', ui-sans-serif, system-ui, sans-serif;
+            direction: rtl;
         }
 
         /* ── Sidebar ── */
@@ -41,13 +43,15 @@
             display: flex;
             flex-direction: column;
             position: fixed;
-            top: 0; left: 0;
+            top: 0;
+            inset-inline-start: 0;
             z-index: 100;
         }
 
         .sidebar-logo {
             padding: 24px 20px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: start;
         }
 
         .sidebar-logo span {
@@ -77,11 +81,13 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             padding: 12px 8px 6px;
+            text-align: start;
         }
 
         .nav-link {
             display: flex;
             align-items: center;
+            justify-content: flex-start;
             gap: 10px;
             padding: 10px 12px;
             border-radius: 8px;
@@ -91,6 +97,7 @@
             font-weight: 500;
             transition: all 0.15s;
             margin-bottom: 2px;
+            text-align: start;
         }
 
         .nav-link:hover, .nav-link.active {
@@ -109,8 +116,8 @@
         .navbar {
             position: fixed;
             top: 0;
-            left: 260px;
-            right: 0;
+            inset-inline-start: 260px;
+            inset-inline-end: 0;
             height: 64px;
             background: var(--blue-primary);
             display: flex;
@@ -198,6 +205,211 @@
             transform: translateX(20px);
         }
 
+        .navbar-icon-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+
+        .navbar-icon-btn:hover {
+            background: rgba(0, 0, 0, 0.28);
+            color: #fff;
+        }
+
+        .navbar-icon-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .navbar-icon-btn__badge {
+            position: absolute;
+            top: -4px;
+            inset-inline-end: -4px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 18px;
+            text-align: center;
+        }
+
+        .chat-unread-pill {
+            display: inline-block;
+            margin-inline-start: 8px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            vertical-align: middle;
+        }
+
+        .chat-thread {
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 24px;
+            max-height: 420px;
+            overflow-y: auto;
+            background: #f9fafb;
+        }
+
+        .chat-thread__empty {
+            color: #6b7280;
+            text-align: center;
+            margin: 0;
+        }
+
+        .chat-bubble-row {
+            display: flex;
+            margin-bottom: 14px;
+        }
+
+        .chat-bubble-row--mine {
+            justify-content: flex-end;
+        }
+
+        .chat-bubble-row--theirs {
+            justify-content: flex-start;
+        }
+
+        .chat-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .chat-bubble--mine {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+
+        .chat-bubble--theirs {
+            background: #fff;
+            color: #111827;
+        }
+
+        .chat-bubble__author {
+            font-size: 13px;
+            opacity: 0.8;
+            margin: 0 0 6px;
+        }
+
+        .chat-bubble__text {
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .chat-bubble__time {
+            font-size: 12px;
+            opacity: 0.7;
+            margin: 8px 0 0;
+        }
+
+        .chat-reply-form {
+            margin-top: 0;
+        }
+
+        .navbar-notifications {
+            position: relative;
+        }
+
+        .navbar-notifications__panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            inset-inline-end: 0;
+            width: min(360px, 92vw);
+            max-height: 400px;
+            overflow: auto;
+            background: #fff;
+            color: #111827;
+            border-radius: 12px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+            z-index: 200;
+        }
+
+        .navbar-notifications--open .navbar-notifications__panel {
+            display: block;
+        }
+
+        .navbar-notifications__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .navbar-notifications__mark {
+            font-size: 12px;
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .navbar-notifications__list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar-notifications-item {
+            padding: 12px 14px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .navbar-notifications-item--unread {
+            background: #eff6ff;
+        }
+
+        .navbar-notifications-item--action {
+            cursor: pointer;
+        }
+
+        .navbar-notifications-item--action:hover {
+            background: #f3f4f6;
+        }
+
+        .navbar-notifications-item--unread.navbar-notifications-item--action:hover {
+            background: #dbeafe;
+        }
+
+        .navbar-notifications-item p {
+            margin: 4px 0 0;
+            font-size: 13px;
+            color: #4b5563;
+        }
+
+        .navbar-notifications-item small {
+            color: #9ca3af;
+            font-size: 11px;
+        }
+
+        .navbar-notifications-empty {
+            padding: 20px 14px;
+            text-align: center;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
         .navbar-user {
             display: flex;
             align-items: center;
@@ -237,7 +449,7 @@
 
         /* ── Main Content ── */
         .main-content {
-            margin-left: 260px;
+            margin-inline-start: 260px;
             margin-top: 64px;
             flex: 1;
             padding: 32px;
@@ -470,6 +682,11 @@
         .badge-approved      { background: #d1fae5; color: #065f46; }
         .badge-rejected      { background: #fee2e2; color: #991b1b; }
         .badge-completed     { background: #ede9fe; color: #5b21b6; }
+        .badge-scheduled     { background: #dbeafe; color: #1e40af; }
+        .badge-cancelled     { background: #f3f4f6; color: #6b7280; }
+        .badge-rescheduled   { background: #ffedd5; color: #9a3412; }
+        .badge-paid          { background: #d1fae5; color: #065f46; }
+        .badge-failed        { background: #fee2e2; color: #991b1b; }
         .badge-active        { background: #d1fae5; color: #065f46; }
         .badge-inactive      { background: #f3f4f6; color: #6b7280; }
 
@@ -633,8 +850,6 @@
 
         select.form-control {
             width: 100%;
-            max-width: 22rem;
-            min-width: min(100%, 16rem);
             padding-inline: 14px 2.5rem;
             appearance: auto;
         }
@@ -643,33 +858,110 @@
             padding-inline: 2.5rem 14px;
         }
 
+        .password-input-wrap {
+            position: relative;
+        }
+
+        .password-input-wrap .form-control {
+            padding-inline-end: 2.75rem;
+        }
+
+        html[dir="rtl"] .password-input-wrap .form-control {
+            padding-inline-end: 14px;
+            padding-inline-start: 2.75rem;
+        }
+
+        .password-toggle-btn {
+            position: absolute;
+            top: 50%;
+            inset-inline-end: 10px;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-medium);
+            cursor: pointer;
+        }
+
+        .password-toggle-btn:hover {
+            color: var(--text-dark);
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .password-toggle-btn:focus-visible {
+            outline: 2px solid var(--blue-primary);
+            outline-offset: 2px;
+        }
+
+        [data-toggle-pass] .password-toggle-icon--visible {
+            display: none;
+        }
+
+        [data-toggle-pass] .password-toggle-icon--hidden {
+            display: block;
+        }
+
+        [data-toggle-pass].is-password-visible .password-toggle-icon--visible {
+            display: block;
+        }
+
+        [data-toggle-pass].is-password-visible .password-toggle-icon--hidden {
+            display: none;
+        }
+
         .form-error {
             font-size: 12px;
             color: #dc2626;
             margin-top: 4px;
         }
 
-        html[dir="rtl"] .sidebar {
+        html[dir="rtl"] .sidebar,
+        body.is-rtl .sidebar {
             left: auto;
             right: 0;
         }
 
-        html[dir="rtl"] .navbar {
+        html[dir="rtl"] .navbar,
+        body.is-rtl .navbar {
             left: 0;
             right: 260px;
         }
 
-        html[dir="rtl"] .main-content {
+        html[dir="rtl"] .main-content,
+        body.is-rtl .main-content {
             margin-left: 0;
             margin-right: 260px;
         }
 
-        html[dir="rtl"] .nav-link {
+        html[dir="rtl"] .sidebar-nav,
+        html[dir="rtl"] .sidebar-footer,
+        body.is-rtl .sidebar-nav,
+        body.is-rtl .sidebar-footer {
+            direction: rtl;
+        }
+
+        html[dir="rtl"] .nav-link,
+        body.is-rtl .nav-link {
+            flex-direction: row;
+            justify-content: flex-start;
+        }
+
+        html[dir="rtl"] .navbar-user,
+        body.is-rtl .navbar-user {
             flex-direction: row-reverse;
         }
 
-        html[dir="rtl"] .navbar-user {
-            flex-direction: row-reverse;
+        html[dir="rtl"] .btn-logout,
+        body.is-rtl .btn-logout {
+            flex-direction: row;
+            justify-content: flex-start;
+            text-align: start;
         }
 
         html[dir="rtl"] .alert-warning {
@@ -789,6 +1081,10 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
         {{ __('ui.nav.my_requests') }}
     </a>
+    <a href="{{ route('citizen.chats.index') }}" class="nav-link {{ request()->routeIs('citizen.chats*') || request()->routeIs('citizen.chat') ? 'active' : '' }}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        {{ __('ui.nav.chats') }}
+    </a>
     <div class="nav-section-label">{{ __('ui.citizen_payments_section') }}</div>
     <a href="{{ route('citizen.payments') }}" class="nav-link {{ request()->routeIs('citizen.payments*') ? 'active' : '' }}">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
@@ -822,6 +1118,14 @@
     <a href="{{ route('staff.requests.index') }}" class="nav-link {{ request()->routeIs('staff.requests.*') ? 'active' : '' }}">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
         {{ __('ui.nav.service_requests') }}
+    </a>
+    <a href="{{ route('staff.chats.index') }}" class="nav-link {{ request()->routeIs('staff.chats.*') ? 'active' : '' }}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        {{ __('ui.nav.chats') }}
+    </a>
+    <a href="{{ route('staff.appointments.index') }}" class="nav-link {{ request()->routeIs('staff.appointments.*') ? 'active' : '' }}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        {{ __('ui.nav.appointments') }}
     </a>
     <div class="nav-section-label">{{ __('ui.office_section') }}</div>
     <a href="{{ route('staff.office.edit') }}" class="nav-link {{ request()->routeIs('staff.office.*') ? 'active' : '' }}">
@@ -861,6 +1165,10 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
         {{ __('ui.nav.citizens') }}
     </a>
+    <a href="{{ route('admin.requests.index') }}" class="nav-link {{ request()->routeIs('admin.requests.*') ? 'active' : '' }}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        {{ __('ui.nav.all_requests') }}
+    </a>
     <div class="nav-section-label">{{ __('ui.reports') }}</div>
     <a href="{{ route('admin.reports.index') }}" class="nav-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
@@ -880,7 +1188,7 @@
     <div class="sidebar-footer">
         <form method="POST" action="{{ route('logout') }}">
             @csrf
-            <button type="submit" class="btn-logout" style="width:100%; display:flex; align-items:center; gap:10px; text-align:left;">
+            <button type="submit" class="btn-logout" style="width:100%; display:flex; align-items:center; gap:10px; text-align:start;">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                 {{ __('ui.nav.logout') }}
             </button>
@@ -893,6 +1201,28 @@
     <span class="navbar-title">@yield('page-title', 'Dashboard')</span>
     <div class="navbar-right">
         <x-locale-switcher />
+        @if ($roleSlug === 'office_staff' || $roleSlug === 'citizen')
+            <a href="{{ $roleSlug === 'office_staff' ? route('staff.chats.index') : route('citizen.chats.index') }}" class="navbar-icon-btn" title="{{ __('ui.nav.chats') }}" aria-label="{{ __('ui.nav.chats') }}">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                @php($navbarUnreadChats = $roleSlug === 'office_staff' ? staff_unread_chat_count() : citizen_unread_chat_count())
+                @if ($navbarUnreadChats > 0)
+                    <span class="navbar-icon-btn__badge">{{ localized_digits((string) $navbarUnreadChats) }}</span>
+                @endif
+            </a>
+        @endif
+        <div class="navbar-notifications" id="navbar-notifications">
+            <button type="button" class="navbar-icon-btn" id="navbar-notifications-toggle" aria-label="{{ __('ui.nav.notifications') }}">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                <span class="navbar-icon-btn__badge" id="navbar-notifications-badge" hidden>0</span>
+            </button>
+            <div class="navbar-notifications__panel">
+                <div class="navbar-notifications__header">
+                    <span>{{ __('ui.nav.notifications') }}</span>
+                    <a href="#" class="navbar-notifications__mark" id="navbar-notifications-mark-all">{{ __('ui.notifications.mark_all_read') }}</a>
+                </div>
+                <ul class="navbar-notifications__list" id="navbar-notifications-list"></ul>
+            </div>
+        </div>
         <div class="navbar-user">
             <div class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div>
             {{ auth()->user()->name }}
@@ -918,9 +1248,63 @@
         </div>
     @endif
 
+    @if(filled(config('services.webpush.public_key')))
+        <div id="push-enable-banner" class="alert-warning" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;" hidden>
+            <span id="push-enable-message">{{ __('ui.notifications.push_enable_prompt') }}</span>
+            <button type="button" id="push-enable-btn" class="btn-primary" style="padding:8px 14px; font-size:13px; white-space:nowrap;">
+                {{ __('ui.notifications.push_enable_button') }}
+            </button>
+        </div>
+    @endif
+
     @yield('content')
 </main>
 
+<script>
+    window.__PUSH_CONFIG__ = {
+        publicKeyUrl: @json(route('api.push.public-key')),
+        subscribeUrl: @json(route('api.push.subscribe')),
+        csrf: @json(csrf_token()),
+        promptLabel: @json(__('ui.notifications.push_enable_prompt')),
+        deniedLabel: @json(__('ui.notifications.push_denied_hint')),
+        sslLabel: @json(__('ui.notifications.push_ssl_hint')),
+        enabledLabel: @json(__('ui.notifications.push_enabled')),
+    };
+</script>
+<script>
+    window.__NOTIFICATIONS_CONFIG__ = {
+        pollUrl: @json(route('api.notifications.index')),
+        streamUrl: @json(live_updates_stream_url()),
+        pollSeconds: @json((int) config('services.live_updates.poll_seconds', 5)),
+        markAllUrl: @json(route('api.notifications.read-all')),
+        markReadUrlTemplate: @json(url('/api/notifications/__ID__/read')),
+        markOneLabel: @json(__('ui.notifications.mark_one_read')),
+        csrf: @json(csrf_token()),
+        emptyLabel: @json(__('ui.notifications.empty')),
+    };
+    window.__LIVE_CONFIG__ = {
+        streamUrl: @json(live_updates_stream_url()),
+        trackRequests: true,
+    };
+    const notificationsRoot = document.getElementById('navbar-notifications');
+    const notificationsToggle = document.getElementById('navbar-notifications-toggle');
+    notificationsToggle?.addEventListener('click', function (event) {
+        event.stopPropagation();
+        notificationsRoot?.classList.toggle('navbar-notifications--open');
+    });
+    document.addEventListener('click', function (event) {
+        if (notificationsRoot && !notificationsRoot.contains(event.target)) {
+            notificationsRoot.classList.remove('navbar-notifications--open');
+        }
+    });
+</script>
+<script>
+    window.passwordToggleLabels = {
+        show: @json(__('ui.auth.show_password')),
+        hide: @json(__('ui.auth.hide_password')),
+    };
+</script>
+@vite(['resources/js/navbar-notifications.js', 'resources/js/push-notifications.js', 'resources/js/password-toggle.js'])
 @stack('scripts')
 </body>
 </html>

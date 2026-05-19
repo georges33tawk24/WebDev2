@@ -9,7 +9,12 @@
         <div class="page-title">{{ __('ui.staff.request_details') }}</div>
         <div class="page-subtitle">{{ __('ui.staff.reference_label', ['ref' => $serviceRequest->reference_number]) }}</div>
     </div>
-    <a href="{{ route('staff.requests.index') }}" class="btn-secondary"> {{ __('ui.staff.back_requests') }}</a>
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <a href="{{ route('staff.chats.show', $serviceRequest) }}" class="btn-primary" style="text-decoration:none;">
+            {{ __('ui.staff.open_chat') }}
+        </a>
+        <a href="{{ route('staff.requests.index') }}" class="btn-secondary">{{ __('ui.staff.back_requests') }}</a>
+    </div>
 </div>
 
 <div style="display:grid; grid-template-columns:2fr 1fr; gap:24px;">
@@ -44,6 +49,12 @@
                     <td style="padding:8px 0; color:#6b7280; font-size:13px;">{{ __('ui.staff.current_status') }}</td>
                     <td style="padding:8px 0;">
                         <x-status-badge :status="$serviceRequest->status" />
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:8px 0; color:#6b7280; font-size:13px; vertical-align:top;">{{ __('ui.staff.payment_status') }}</td>
+                    <td style="padding:8px 0;">
+                        <x-request-payment-status :service-request="$serviceRequest" />
                     </td>
                 </tr>
                 @if($serviceRequest->notes)
@@ -99,8 +110,8 @@
                         {{ __('ui.staff.changed_by', ['name' => $history->changedBy?->name ?? __('ui.staff.system')]) }} •
                         {{ $history->changed_at?->format('M d, Y H:i') ?? '' }}
                     </div>
-                    @if($history->comment)
-                    <div style="font-size:13px; color:#374151; margin-top:4px;">{{ $history->comment }}</div>
+                    @if($history->display_comment)
+                    <div style="font-size:13px; color:#374151; margin-top:4px;">{{ $history->display_comment }}</div>
                     @endif
                 </div>
             </div>

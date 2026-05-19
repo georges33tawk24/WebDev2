@@ -32,6 +32,7 @@
         
         <div class="stat-label">{{ __('ui.admin.total_revenue') }}</div>
         <div class="stat-number">{{ localized_money($totalRevenue) }}</div>
+        <p style="font-size:12px; color:#6b7280; margin-top:8px;">{{ __('ui.admin.revenue_from_payments') }}</p>
     </div>
 </div>
 
@@ -78,6 +79,35 @@
                             {{ localized_number($office->service_requests_count) }}
                         </span>
                     </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="3" style="text-align:center; color:#6b7280; padding:32px;">{{ __('ui.admin.no_data_yet') }}</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{-- Revenue per office (paid payments) --}}
+<div class="card" style="margin-bottom:24px;">
+    <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:16px;">{{ __('ui.admin.revenue_per_office') }}</div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th class="col-primary">{{ __('ui.table.office_name') }}</th>
+                    <th class="col-secondary">{{ __('ui.table.municipality') }}</th>
+                    <th class="col-price">{{ __('ui.admin.paid_revenue') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($revenuePerOffice as $office)
+                <tr>
+                    <td class="col-primary" style="font-weight:600; color:#111827;">{{ $office->localized('name') }}</td>
+                    <td class="col-secondary">{{ $office->localized('municipality') ?? __('ui.na') }}</td>
+                    <td class="col-price" style="font-weight:600;">{{ localized_money((float) $office->paid_revenue) }}</td>
                 </tr>
                 @empty
                 <tr>

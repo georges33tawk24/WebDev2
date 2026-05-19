@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsureTwoFactorVerified;
 use App\Http\Middleware\NormalizeLocalDevelopmentHost;
 use App\Http\Middleware\SecureHeaders;
 use App\Http\Middleware\SetLocale;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -45,7 +46,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(
             fn (Request $request) => route(AuthController::homeRouteFor($request->user()))
         );
+
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/stripe',
+            'webhooks/nowpayments',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
-    })->create();
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->command('appointments:send-reminders')->everyMinute();
+    })
+    ->create();

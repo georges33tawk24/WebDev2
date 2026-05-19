@@ -4,13 +4,19 @@ namespace App\Http\Controllers\Citizen;
 
 use App\Models\Appointment;
 use App\Models\Message;
-use App\Models\Notification;
 use App\Models\User;
+use App\Services\ChatService;
+use App\Services\ExchangeRateService;
+use App\Services\NotificationService;
+use App\Services\PaymentDocumentService;
+use App\Services\RequestStatusHistoryService;
+use App\Services\RequestTrackingService;
+use App\Services\SmsService;
 use Carbon\Carbon;
 use App\Mail\ServiceRequestSubmitted;
 use Illuminate\Support\Facades\Mail;
 use App\Models\Feedback;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use SimpleSoftwareIO\QrCode\Facades\QrCode as QrCodeGenerator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
@@ -81,16 +87,15 @@ class CitizenController extends Controller
         return view('citizen.services', compact('services', 'offices', 'categories'));
     }
 
-    public function requestQr(ServiceRequest $serviceRequest)
-{
-    abort_if($serviceRequest->citizen_id !== Auth::id(), 403);
+    public function requestQr(ServiceRequest $serviceRequest, RequestTrackingService $trackingService)
+    {
+        abort_if($serviceRequest->citizen_id !== Auth::id(), 403);
 
-    $trackingUrl = route('citizen.requests');
+        $trackingUrl = $trackingService->trackingUrl($serviceRequest);
+        $qrCode = QrCodeGenerator::size(220)->generate($trackingUrl);
 
-    $qrCode = QrCode::size(220)->generate($trackingUrl);
-
-    return view('citizen.request-qr', compact('serviceRequest', 'qrCode'));
-}
+        return view('citizen.request-qr', compact('serviceRequest', 'qrCode', 'trackingUrl'));
+    }
 
    public function showService(Service $service)
 {
@@ -174,6 +179,10 @@ class CitizenController extends Controller
 
     $serviceRequest->load(['citizen', 'service', 'office']);
 
+    app(RequestTrackingService::class)->ensureQrToken($serviceRequest);
+
+    app(NotificationService::class)->newServiceRequest($serviceRequest);
+
     Mail::to(Auth::user()->email)
         ->send(new ServiceRequestSubmitted($serviceRequest));
 
@@ -199,64 +208,67 @@ public function storeFeedback(Request $request, ServiceRequest $serviceRequest)
         'comment' => ['nullable', 'string', 'max:2000'],
     ]);
 
-    Feedback::updateOrCreate(
+    $feedback = Feedback::updateOrCreate(
         [
             'service_request_id' => $serviceRequest->id,
             'citizen_id' => Auth::id(),
         ],
         [
             'office_id' => $serviceRequest->office_id,
-            'service_id' => $serviceRequest->service_id,
             'rating' => $request->rating,
             'comment' => $request->comment,
         ]
     );
 
+    app(NotificationService::class)->newFeedback($feedback);
+
     return redirect()
         ->route('citizen.history')
         ->with('success', __('ui.flash.feedback_submitted'));
 }
-   public function chat(ServiceRequest $serviceRequest)
-{
-    abort_if($serviceRequest->citizen_id !== Auth::id(), 403);
+    public function chatsIndex(): \Illuminate\View\View
+    {
+        $requests = ServiceRequest::query()
+            ->with(['service', 'office'])
+            ->where('citizen_id', Auth::id())
+            ->whereHas('messages')
+            ->withCount([
+                'messages as unread_count' => function ($query) {
+                    $query->where('recipient_id', Auth::id())->whereNull('read_at');
+                },
+            ])
+            ->withMax('messages as last_message_at', 'created_at')
+            ->orderByDesc('last_message_at')
+            ->paginate(15);
 
-    $serviceRequest->load(['service', 'office']);
-
-    $messages = Message::with(['sender', 'recipient'])
-        ->where('service_request_id', $serviceRequest->id)
-        ->orderBy('created_at')
-        ->get();
-
-    return view('citizen.chat', compact('serviceRequest', 'messages'));
-}
-
-public function sendMessage(Request $request, ServiceRequest $serviceRequest)
-{
-    abort_if($serviceRequest->citizen_id !== Auth::id(), 403);
-
-    $request->validate([
-        'message' => ['required', 'string', 'max:2000'],
-    ]);
-
-    $staffUser = User::where('office_id', $serviceRequest->office_id)
-        ->whereHas('role', function ($query) {
-            $query->where('slug', 'office_staff');
-        })
-        ->first();
-
-    if (!$staffUser) {
-        return back()->with('error', __('ui.flash.no_staff_for_chat'));
+        return view('citizen.chats.index', compact('requests'));
     }
 
-    Message::create([
-        'service_request_id' => $serviceRequest->id,
-        'sender_id' => Auth::id(),
-        'recipient_id' => $staffUser->id,
-        'message' => $request->message,
-    ]);
+    public function chat(ServiceRequest $serviceRequest, ChatService $chatService): \Illuminate\View\View
+    {
+        $chatService->authorizeView($serviceRequest, Auth::user());
+        $chatService->markReadForUser($serviceRequest, Auth::user());
 
-    return back()->with('success', __('ui.flash.message_sent'));
-}
+        $serviceRequest->load(['service', 'office']);
+
+        $messages = Message::with(['sender'])
+            ->where('service_request_id', $serviceRequest->id)
+            ->orderBy('created_at')
+            ->get();
+
+        return view('citizen.chat', compact('serviceRequest', 'messages'));
+    }
+
+    public function sendMessage(Request $request, ServiceRequest $serviceRequest, ChatService $chatService): \Illuminate\Http\RedirectResponse
+    {
+        $validated = $request->validate([
+            'message' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $chatService->send($serviceRequest, $request->user(), $validated['message']);
+
+        return back()->with('success', __('ui.flash.message_sent'));
+    }
    public function payments()
 {
     $requests = ServiceRequest::with(['service', 'office', 'payments'])
@@ -268,36 +280,6 @@ public function sendMessage(Request $request, ServiceRequest $serviceRequest)
         ->get();
 
     return view('citizen.payments', compact('requests'));
-}
-
-public function paymentPage(ServiceRequest $serviceRequest)
-{
-    return view('citizen.payment-show', compact('serviceRequest'));
-}
-
-public function processPayment(Request $request, ServiceRequest $serviceRequest)
-{
-    $request->validate([
-        'card_holder' => ['required', 'string', 'max:255'],
-        'card_number' => ['required', 'digits:16'],
-        'expiry_date' => ['required', 'regex:/^(0[1-9]|1[0-2])\/\d{2}$/'],
-        'cvv' => ['required', 'digits:3'],
-    ]);
-
-    Payment::create([
-        'service_request_id' => $serviceRequest->id,
-        'user_id' => Auth::id(),
-        'method' => 'card',
-        'amount' => $serviceRequest->service->price ?? 0,
-        'currency' => 'USD',
-        'status' => 'paid',
-        'gateway_reference' => 'LOCAL-' . strtoupper(\Illuminate\Support\Str::random(10)),
-        'paid_at' => now(),
-    ]);
-
-    return redirect()
-        ->route('citizen.payments')
-        ->with('success', __('ui.flash.payment_completed'));
 }
 
 public function maps()
@@ -399,15 +381,34 @@ public function storeAppointment(Request $request)
 
     $office = Office::query()->find($validated['office_id']);
 
-    Notification::query()->create([
-        'user_id' => Auth::id(),
-        'title' => __('ui.flash.appointment_booked'),
-        'body' => __('ui.citizen.appointment_confirmed_body', [
-            'office' => $office?->localized('name') ?? __('ui.na'),
-            'when' => localized_datetime($startsAt),
-        ]),
-        'data' => ['appointment_id' => $appointment->id, 'office_id' => $office?->id],
+    $body = __('ui.citizen.appointment_confirmed_body', [
+        'office' => $office?->localized('name') ?? __('ui.na'),
+        'when' => localized_datetime($startsAt),
     ]);
+
+    $when = localized_datetime($startsAt);
+    $notifications = app(NotificationService::class);
+
+    $notifications->appointmentBooked(
+        Auth::user(),
+        $staff,
+        (int) $validated['office_id'],
+        $startsAt,
+        $appointment->id,
+        (int) $validated['office_id'],
+    );
+
+    if (filled(Auth::user()->email)) {
+        \Illuminate\Support\Facades\Mail::to(Auth::user()->email)
+            ->send(new \App\Mail\AppointmentBookedMail($appointment));
+    }
+
+    app(SmsService::class)->send(Auth::user(), $body);
+
+    if ($staff && filled($staff->email)) {
+        \Illuminate\Support\Facades\Mail::to($staff->email)
+            ->send(new \App\Mail\AppointmentBookedMail($appointment, forStaff: true));
+    }
 
     return redirect()
         ->route('citizen.appointments')

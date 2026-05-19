@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\Feedback;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class FeedbackController extends Controller
@@ -30,6 +31,8 @@ class FeedbackController extends Controller
         } else {
             $feedback->update(['private_reply' => $validated['reply']]);
         }
+
+        app(NotificationService::class)->feedbackReply($feedback, $validated['reply_type']);
 
         return back()->with('success', __('ui.flash.reply_sent'));
     }

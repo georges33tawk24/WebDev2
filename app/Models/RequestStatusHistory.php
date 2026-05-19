@@ -28,4 +28,15 @@ class RequestStatusHistory extends Model
     {
         return $this->belongsTo(User::class, 'changed_by');
     }
+
+    public function getDisplayCommentAttribute(): ?string
+    {
+        if (! $this->comment) {
+            return null;
+        }
+
+        $clean = preg_replace('/\s*\[payment:\d+\]\s*$/', '', $this->comment);
+
+        return is_string($clean) && $clean !== '' ? $clean : null;
+    }
 }

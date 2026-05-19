@@ -32,9 +32,11 @@ class SecureHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('X-XSS-Protection', '1; mode=block');
 
+        $stripeNav = 'https://checkout.stripe.com https://*.stripe.com';
+
         $response->headers->set(
             'Content-Security-Policy',
-            "default-src 'self'; {$scriptSrc}; {$styleSrc}; font-src 'self' https://fonts.gstatic.com data:; {$imgSrc}; {$connectSrc}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+            "default-src 'self'; {$scriptSrc}; {$styleSrc}; font-src 'self' https://fonts.gstatic.com data:; {$imgSrc}; {$connectSrc}; frame-ancestors 'none'; base-uri 'self'; form-action 'self' {$stripeNav}; navigate-to 'self' {$stripeNav}"
         );
 
         return $response;

@@ -9,11 +9,32 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class AuthFlowTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_login_with_wrong_password_shows_error_message(): void
+    {
+        $adminRole = Role::query()->create(['name' => 'Admin', 'slug' => 'admin']);
+        User::query()->create([
+            'name' => 'Platform Admin',
+            'email' => 'admin@example.com',
+            'password' => Hash::make('password123'),
+            'role_id' => $adminRole->id,
+        ]);
+
+        $this->from(route('login'))
+            ->followingRedirects()
+            ->post(route('login.attempt'), [
+                'email' => 'admin@example.com',
+                'password' => 'wrong-password',
+            ])
+            ->assertOk()
+            ->assertSee(__('ui.flash.invalid_credentials'), false);
+    }
 
     public function test_admin_password_login_skips_two_factor(): void
     {
@@ -145,7 +166,7 @@ class AuthFlowTest extends TestCase
         $this->assertDatabaseHas('social_accounts', ['provider' => 'facebook', 'provider_user_id' => 'facebook-user-1']);
     }
 
-    public function test_two_factor_page_sends_email_code_and_shows_entry_form(): void
+    public function test_two_factor_verify_page_auto_sends_email_code(): void
     {
         $citizenRole = Role::query()->create(['name' => 'Citizen', 'slug' => 'citizen']);
         $user = User::query()->create([
@@ -157,21 +178,114 @@ class AuthFlowTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->withSession(['two_factor.step' => 'choose'])
             ->get(route('2fa.verify'))
             ->assertOk()
             ->assertSee('Verify your email', false)
-            ->assertSessionHas('two_factor.step', 'verify');
+            ->assertSee('Send code by text message', false)
+            ->assertSessionHas('two_factor.step', 'verify')
+            ->assertSessionHas('two_factor.channel', 'email');
 
-        $this->assertDatabaseHas('two_factor_codes', ['user_id' => $user->id]);
+        $this->assertDatabaseHas('two_factor_codes', [
+            'user_id' => $user->id,
+            'channel' => 'email',
+        ]);
+    }
+
+    public function test_two_factor_sms_channel_sends_via_brevo(): void
+    {
+        config([
+            'services.sms.driver' => 'brevo',
+            'services.brevo.api_key' => 'test-key',
+            'services.brevo.sms_sender' => 'webdev2',
+        ]);
+
+        Http::fake([
+            'api.brevo.com/*' => Http::response(['messageId' => 1], 201),
+        ]);
+
+        $citizenRole = Role::query()->create(['name' => 'Citizen', 'slug' => 'citizen']);
+        $user = User::query()->create([
+            'name' => 'Citizen User',
+            'email' => 'citizen-sms@gmail.com',
+            'password' => Hash::make('password123'),
+            'role_id' => $citizenRole->id,
+            'phone' => '+96170987654',
+            'two_factor_verified_at' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('2fa.channel'), ['channel' => 'sms'])
+            ->assertRedirect(route('2fa.verify'))
+            ->assertSessionHas('two_factor.channel', 'sms');
+
+        $this->assertDatabaseHas('two_factor_codes', [
+            'user_id' => $user->id,
+            'channel' => 'sms',
+        ]);
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'api.brevo.com'));
+    }
+
+    public function test_placeholder_email_defaults_to_sms_when_configured(): void
+    {
+        config([
+            'services.sms.driver' => 'brevo',
+            'services.brevo.api_key' => 'test-key',
+            'services.brevo.sms_sender' => 'webdev2',
+        ]);
+
+        Http::fake([
+            'api.brevo.com/*' => Http::response(['messageId' => 1], 201),
+        ]);
+
+        $citizenRole = Role::query()->create(['name' => 'Citizen', 'slug' => 'citizen']);
+        $user = User::query()->create([
+            'name' => 'OAuth User',
+            'email' => 'facebook-user-99@example.com',
+            'password' => Hash::make('password123'),
+            'role_id' => $citizenRole->id,
+            'phone' => '+96170111222',
+            'two_factor_verified_at' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('2fa.verify'))
+            ->assertOk()
+            ->assertSee('Verify your phone', false)
+            ->assertSessionHas('two_factor.channel', 'sms');
+    }
+
+    public function test_two_factor_sms_choice_without_phone_redirects_to_collect_phone(): void
+    {
+        config([
+            'services.sms.driver' => 'brevo',
+            'services.brevo.api_key' => 'test-key',
+            'services.brevo.sms_sender' => 'webdev2',
+        ]);
+
+        $citizenRole = Role::query()->create(['name' => 'Citizen', 'slug' => 'citizen']);
+        $user = User::query()->create([
+            'name' => 'No Phone',
+            'email' => 'citizen-nophone@gmail.com',
+            'password' => Hash::make('password123'),
+            'role_id' => $citizenRole->id,
+            'two_factor_verified_at' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('2fa.channel'), ['channel' => 'sms'])
+            ->assertRedirect(route('2fa.collect-phone'))
+            ->assertSessionHas('two_factor.pending_channel', 'sms');
     }
 
     public function test_two_factor_resend_is_rate_limited(): void
     {
+        Mail::fake();
+
         $citizenRole = Role::query()->create(['name' => 'Citizen', 'slug' => 'citizen']);
         $user = User::query()->create([
             'name' => 'Citizen User',
-            'email' => 'citizen6@example.com',
+            'email' => 'citizen6@gmail.com',
             'password' => Hash::make('password123'),
             'role_id' => $citizenRole->id,
             'two_factor_verified_at' => null,
@@ -179,6 +293,7 @@ class AuthFlowTest extends TestCase
 
         $session = [
             'two_factor.step' => 'verify',
+            'two_factor.channel' => 'email',
         ];
 
         $this->actingAs($user)
@@ -197,6 +312,47 @@ class AuthFlowTest extends TestCase
             ->assertSessionHasErrors('resend');
     }
 
+    public function test_two_factor_switching_channel_bypasses_resend_cooldown(): void
+    {
+        Mail::fake();
+
+        $citizenRole = Role::query()->create(['name' => 'Citizen', 'slug' => 'citizen']);
+        $user = User::query()->create([
+            'name' => 'Citizen User',
+            'email' => 'citizen-switch@gmail.com',
+            'password' => Hash::make('password123'),
+            'role_id' => $citizenRole->id,
+            'phone' => '+96170987654',
+            'two_factor_verified_at' => null,
+        ]);
+
+        TwoFactorCode::query()->create([
+            'user_id' => $user->id,
+            'code' => '111111',
+            'channel' => 'sms',
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        $this->actingAs($user)
+            ->withSession([
+                'two_factor.step' => 'verify',
+                'two_factor.channel' => 'sms',
+                'two_factor.last_sent_at' => now()->timestamp,
+            ])
+            ->post(route('2fa.channel'), ['channel' => 'email'])
+            ->assertRedirect(route('2fa.verify'))
+            ->assertSessionHas('two_factor.channel', 'email')
+            ->assertSessionHas('status')
+            ->assertSessionDoesntHaveErrors('resend');
+
+        $this->assertDatabaseHas('two_factor_codes', [
+            'user_id' => $user->id,
+            'channel' => 'email',
+        ]);
+
+        Mail::assertSent(\App\Mail\TwoFactorCodeMail::class);
+    }
+
     public function test_two_factor_verification_accepts_valid_code(): void
     {
         $citizenRole = Role::query()->create(['name' => 'Citizen', 'slug' => 'citizen']);
@@ -211,10 +367,12 @@ class AuthFlowTest extends TestCase
         TwoFactorCode::query()->create([
             'user_id' => $user->id,
             'code' => '123456',
+            'channel' => 'email',
             'expires_at' => now()->addMinutes(5),
         ]);
 
         $response = $this->actingAs($user)
+            ->withSession(['two_factor.channel' => 'email'])
             ->post(route('2fa.verify.submit'), ['code' => '123456']);
 
         $response->assertRedirect(route('id-upload'));

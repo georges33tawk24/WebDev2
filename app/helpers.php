@@ -204,3 +204,66 @@ if (! function_exists('parse_working_hours_input')) {
         return ['hours' => $input];
     }
 }
+
+if (! function_exists('staff_unread_chat_count')) {
+    function staff_unread_chat_count(): int
+    {
+        $user = auth()->user();
+
+        if (! $user || $user->role?->slug !== 'office_staff' || ! $user->office_id) {
+            return 0;
+        }
+
+        return \App\Models\Message::query()
+            ->where('recipient_id', $user->id)
+            ->whereNull('read_at')
+            ->whereHas('serviceRequest', function ($query) use ($user) {
+                $query->where('office_id', $user->office_id);
+            })
+            ->count();
+    }
+}
+
+if (! function_exists('citizen_unread_chat_count')) {
+    function citizen_unread_chat_count(): int
+    {
+        $user = auth()->user();
+
+        if (! $user || $user->role?->slug !== 'citizen') {
+            return 0;
+        }
+
+        return \App\Models\Message::query()
+            ->where('recipient_id', $user->id)
+            ->whereNull('read_at')
+            ->whereHas('serviceRequest', fn ($query) => $query->where('citizen_id', $user->id))
+            ->count();
+    }
+}
+
+if (! function_exists('unread_notification_count')) {
+    function unread_notification_count(): int
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return 0;
+        }
+
+        return \App\Models\Notification::query()
+            ->where('user_id', $user->id)
+            ->whereNull('read_at')
+            ->count();
+    }
+}
+
+if (! function_exists('live_updates_stream_url')) {
+    function live_updates_stream_url(): ?string
+    {
+        if (! config('services.live_updates.sse_enabled', false)) {
+            return null;
+        }
+
+        return route('api.live.stream');
+    }
+}

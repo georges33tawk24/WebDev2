@@ -88,21 +88,35 @@ Ensure the file exists:
 touch database/database.sqlite
 ```
 
-### 5. Migrations and demo data
+### 5. Database (schema + demo data)
 
-Creates all tables (including Arabic catalog columns) and seeds **Lebanon-themed demo data** (~160 service requests, 8 municipalities, 23+ services, staff/citizens, appointments, feedback, messages, demo PDFs, etc.):
+Creates tables, seeds **Lebanon-themed demo data** (~160 service requests, 8 municipalities, 23+ services, staff/citizens, appointments, feedback, messages, notifications, demo PDFs, etc.), and links storage:
 
 ```bash
-php artisan migrate --seed
+php artisan db:prepare --seed
 ```
 
 **Reset everything** (deletes all local data):
 
 ```bash
-php artisan migrate:fresh --seed
+php artisan db:prepare --fresh --seed
 ```
 
-> Each developer has **their own** database. Git shares **seeders**, not your rows. After clone, everyone runs `migrate --seed` to get the same baseline.
+See **`database/README.md`** for full detail.
+
+#### Will teammates have the same data as me?
+
+| What they do | What they get |
+|--------------|----------------|
+| Clone + `php artisan db:prepare --seed` | The **same demo baseline** (seeded accounts, offices, sample requests) — **not** your personal rows from day-to-day use |
+| Clone + `php artisan db:prepare --import-team` | The **team SQL snapshot** in `database/dumps/team.sql` (if committed) — same data as whoever last ran export |
+| Only `git clone` | **No data** until they run one of the commands above |
+
+- Git ships **migrations** and **seeders**, not your live MySQL database or `database/database.sqlite` (that file is gitignored).
+- Each developer has their **own** database (MySQL schema or local SQLite file).
+- To share **your exact** current data: run `php artisan db:export-team`, commit `database/dumps/team.sql` (and optional `database/team.sqlite`), push, then teammates run `php artisan db:prepare --import-team`.
+
+> **SQLite quick start:** set `DB_CONNECTION=sqlite` in `.env`, then run `php artisan db:prepare --seed` (creates `database/database.sqlite` automatically).
 
 ### 6. Frontend build
 
@@ -125,7 +139,7 @@ If `.env` is ready and the MySQL database `webdev2` exists:
 composer setup
 ```
 
-Runs install, migrate + seed, npm build, and config clear.
+Runs install, `db:prepare --seed`, npm build, and config clear.
 
 ---
 
@@ -141,7 +155,15 @@ composer dev:https
 
 Open: **https://127.0.0.1:8000**
 
-This starts the PHP server, Caddy TLS proxy, and a queue worker (needed for 2FA email codes).
+This starts the PHP server, Caddy TLS proxy, a **queue worker** (2FA emails), and **scheduler** (appointment reminders).
+
+**Browser push** needs Chrome to trust Caddy’s local certificate (service workers reject self-signed TLS). Run once:
+
+```bash
+caddy trust
+```
+
+Enter your Mac password when prompted, then **quit Chrome completely** and reopen the app. Click **Enable notifications** on the yellow banner.
 
 ### HTTP only (password login, simpler)
 
@@ -184,9 +206,9 @@ Demo data is defined in `database/seeders/DemoDataSeeder.php`.
 
 | Area | Highlights |
 |------|----------------|
-| **Citizen** | Unified sidebar layout; browse/apply for services; track requests; **payments** (mock card); **appointments** (saved to DB); office map; **QR code** per request; **chat**; **feedback**; bilingual receipts |
+| **Citizen** | Unified sidebar layout; browse/apply for services; track requests; **payments** (Stripe + NOWPayments crypto); **appointments** (email/SMS/push on book + scheduled reminders); office map; **QR code**; **chat**; **feedback**; bilingual receipts |
 | **Staff** | Office-scoped requests; status updates with **email alerts**; document download; **catalog** (categories + services for own office); office profile; feedback replies |
-| **Admin** | Offices; categories; services; staff + **create citizen** accounts; **`is_active`** activate/deactivate; citizens list; **analytics/reports** (Chart.js) |
+| **Admin** | Offices; categories; services; staff + **create citizen** accounts; **`is_active`** activate/deactivate; citizens list; **analytics/reports** (Chart.js, revenue from **paid payments**) |
 
 ---
 
@@ -229,22 +251,50 @@ php artisan tinker
 
 ---
 
+## Stripe card payments (school project)
+
+1. Create a free [Stripe account](https://dashboard.stripe.com/register) (any country works for **test mode**).
+2. Developers → API keys → copy **Publishable** and **Secret** test keys into `.env`:
+   ```env
+   STRIPE_KEY=pk_test_...
+   STRIPE_SECRET=sk_test_...
+   ```
+3. `php artisan config:clear`
+4. Log in as `citizen@example.com` → **Payments** → pay for a request → **Pay securely with card (Stripe)**.
+5. On Stripe’s page use: `4242 4242 4242 4242`, expiry `12/34`, CVC `123`.
+
+Optional webhook (marks paid even if the user closes the tab before the success URL):
+
+```bash
+stripe listen --forward-to https://127.0.0.1:8000/webhooks/stripe
+```
+
+Copy the `whsec_...` secret into `STRIPE_WEBHOOK_SECRET`.
+
+---
+
 ## Teammate checklist (MySQL)
 
 ```bash
 git clone https://github.com/georges33tawk24/WebDev2.git
 cd WebDev2
 git checkout 13.x
+git pull origin 13.x
 composer install
 cp .env.example .env
 git config core.hooksPath .githooks
-# Edit .env: DB_PASSWORD, paste team.env secrets
+# Edit .env: DB_PASSWORD, paste team.env secrets (never commit .env)
 mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS webdev2 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-php artisan migrate --seed
+php artisan db:prepare --seed
+# Or match the latest team snapshot from git:
+# php artisan db:prepare --import-team
 npm install && npm run build
+php artisan storage:link
 php artisan config:clear
 composer dev:https
 ```
+
+Open **https://127.0.0.1:8000** — log in with `citizen@example.com` / `password123` (see table above).
 
 ---
 
@@ -256,7 +306,23 @@ composer dev:https
 - **ID upload**: Citizens without a valid ID file are redirected to `/id-upload` after login/2FA. Seeded citizens use a demo ID file under `storage/app/public/ids/`.
 - **Queue worker** must run for 2FA emails (`queue:listen` or included in `composer dev:https`).
 - **Office working hours** in forms are stored as JSON; seeded offices use a structured `days` / `hours` / `note` format.
-- **Payments**: mock card flow in-app; production can use MontyPay Checkout (see team notes) — not wired without merchant API keys.
+- **Payments (card)**: [Stripe Checkout](https://stripe.com) in **test mode** — see `.env.example`. Crypto uses [NOWPayments sandbox](https://account-sandbox.nowpayments.io/).
+- **SMS** (optional): **Brevo** or **Vonage** (see `.env.example`). Powers appointment alerts and **2FA by SMS** — citizens choose email or SMS at login when configured. Without SMS keys, 2FA is email-only and outbound SMS is logged to `storage/logs/laravel.log`.
+- **Browser push**: run `php artisan webpush:vapid`, add keys to `.env`, run `caddy trust` for local HTTPS, then click **Enable notifications** when logged in (Chrome only shows the Allow prompt after that click).
+- **Appointment reminders**: `appointments:send-reminders` runs every minute via the scheduler. Local dev: `composer dev:https` starts `schedule:work` automatically. **Production:** add a cron job: `* * * * * cd /path/to/WebDev2 && php artisan schedule:run >> /dev/null 2>&1`
+- **Live updates**: notifications and request status badges refresh when staff changes a request. **Local dev** uses light polling (SSE disabled by default — it blocks `php artisan serve`). **Production** can enable SSE with `LIVE_UPDATES_SSE=true` and php-fpm/Octane.
+
+### Site feels slow locally?
+
+Common causes:
+
+1. **SSE + `php artisan serve`** — one long-lived `/api/live/stream` request blocks the single PHP worker. Fixed by default: `LIVE_UPDATES_SSE` is off when `APP_ENV=local`. Run `php artisan config:clear` after changing `.env`.
+2. **Heavy dev stack** — `composer dev:https` runs Caddy + `artisan serve` + queue + scheduler; normal for dev, not for production.
+3. **`APP_DEBUG=true`** — slower responses and larger error pages.
+4. **Large layout** — admin pages include ~1,300 lines of inline CSS plus Google Fonts (first load).
+5. **Many tabs open** — each tab polls notifications every 5s when SSE is off.
+
+For a snappier local run: use one browser tab, keep `LIVE_UPDATES_SSE=false`, and run `php artisan config:cache` only when testing production-like settings.
 - **Demo documents**: citizen uploads use a real demo PDF; staff-generated PDFs are created for approved/completed requests.
 
 ---
@@ -267,9 +333,15 @@ composer dev:https
 php artisan test
 ```
 
-Includes locale switching, auth flows, QA smoke tests, and backlog coverage (`LocaleSwitchTest`, `QaSmokeTest`, `BriefBacklogTest` — staff catalog, appointments, status emails, account flags).
+**114+ automated tests**, including:
 
-After clone, run `php artisan storage:link` once (also runs via `composer setup`) so document downloads work.
+- `FullSiteQaTest` — end-to-end flows (requests, staff status, chat, appointments, feedback, admin catalog, role isolation)
+- `AuthFlowTest` — login, 2FA, SMS/email channel switch
+- `QaSmokeTest` / `NewFeaturesArabicTest` — page loads and Arabic UI
+- Payments — `StripeCheckoutTest`, `NowPaymentsCheckoutTest`
+- `NotificationAlertsTest`, `LiveUpdateTest`, `AdminReportsRevenueTest`
+
+After clone, run `php artisan storage:link` once (also runs via `composer setup` / `db:prepare`) so document downloads work.
 
 ---
 

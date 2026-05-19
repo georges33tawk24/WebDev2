@@ -47,16 +47,8 @@
             @endif
         </div>
 
-        <div class="form-group">
-            <label class="form-label">{{ __('ui.auth.password') }}</label>
-            <input type="password" name="password" class="form-control" required autocomplete="new-password">
-            @error('password')<div class="form-error">{{ $message }}</div>@enderror
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">{{ __('ui.auth.confirm_password') }}</label>
-            <input type="password" name="password_confirmation" class="form-control" required autocomplete="new-password">
-        </div>
+        <x-password-field name="password" :label="__('ui.auth.password')" required />
+        <x-password-field name="password_confirmation" id="password_confirmation" :label="__('ui.auth.confirm_password')" required />
 
         <button type="submit" class="btn-primary" @disabled($offices->isEmpty())>{{ __('ui.admin.create_staff_btn') }}</button>
     </form>

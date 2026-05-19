@@ -34,6 +34,9 @@ class DemoDataSeeder extends Seeder
 
     private const MIN_REQUESTS_PER_OFFICE = 14;
 
+    /** Paid services below this cannot use NOWPayments crypto (sandbox min ~$19). */
+    private const MIN_PAID_SERVICE_PRICE_USD = 25.00;
+
     /** @var array<string, Office> */
     private array $offices = [];
 
@@ -80,6 +83,7 @@ class DemoDataSeeder extends Seeder
         }
 
         $this->ensureRichDemoDataPerOffice();
+        $this->seedDemoAccountNotifications();
         $this->command?->info('Lebanon demo data seeded successfully.');
     }
 
@@ -274,13 +278,18 @@ class DemoDataSeeder extends Seeder
         $descriptionArTemplate = $arCatalog['service_description_ar'];
         $requiredDocumentsAr = $arCatalog['required_documents_ar'];
 
+        Service::query()
+            ->where('price', '>', 0)
+            ->where('price', '<', self::MIN_PAID_SERVICE_PRICE_USD)
+            ->update(['price' => self::MIN_PAID_SERVICE_PRICE_USD]);
+
         $catalog = [
-            ['office' => 'beirut', 'category' => 'civil', 'name' => 'Extract of Residence (إخراج قيد)', 'price' => 15.00, 'minutes' => 20],
+            ['office' => 'beirut', 'category' => 'civil', 'name' => 'Extract of Residence (إخراج قيد)', 'price' => 25.00, 'minutes' => 20],
             ['office' => 'beirut', 'category' => 'licenses', 'name' => 'Shop Signage Permit', 'price' => 120.00, 'minutes' => 45],
             ['office' => 'beirut', 'category' => 'planning', 'name' => 'Renovation Permit — Residential', 'price' => 250.00, 'minutes' => 120],
             ['office' => 'beirut', 'category' => 'traffic', 'name' => 'Annual Parking Sticker — Zone A', 'price' => 85.00, 'minutes' => 15],
             ['office' => 'beirut', 'category' => 'health', 'name' => 'Restaurant Sanitary Certificate', 'price' => 95.00, 'minutes' => 60],
-            ['office' => 'tripoli', 'category' => 'civil', 'name' => 'Family Record Copy (نسخة قيد)', 'price' => 12.00, 'minutes' => 25],
+            ['office' => 'tripoli', 'category' => 'civil', 'name' => 'Family Record Copy (نسخة قيد)', 'price' => 25.00, 'minutes' => 25],
             ['office' => 'tripoli', 'category' => 'licenses', 'name' => 'Weekly Souk Vendor Permit', 'price' => 35.00, 'minutes' => 30],
             ['office' => 'tripoli', 'category' => 'business', 'name' => 'New Shop Opening Registration', 'price' => 75.00, 'minutes' => 40],
             ['office' => 'sidon', 'category' => 'property', 'name' => 'Property Boundary Attestation', 'price' => 110.00, 'minutes' => 90],
@@ -288,14 +297,14 @@ class DemoDataSeeder extends Seeder
             ['office' => 'sidon', 'category' => 'health', 'name' => 'Food Handler Health Card', 'price' => 40.00, 'minutes' => 30],
             ['office' => 'zahle', 'category' => 'licenses', 'name' => 'Outdoor Café Terrace License', 'price' => 90.00, 'minutes' => 35],
             ['office' => 'zahle', 'category' => 'social', 'name' => 'Winter Heating Aid Application', 'price' => 0.00, 'minutes' => 25],
-            ['office' => 'zahle', 'category' => 'civil', 'name' => 'Proof of Life Certificate', 'price' => 8.00, 'minutes' => 15],
+            ['office' => 'zahle', 'category' => 'civil', 'name' => 'Proof of Life Certificate', 'price' => 25.00, 'minutes' => 15],
             ['office' => 'jounieh', 'category' => 'traffic', 'name' => 'Tourist Bus Parking Authorization', 'price' => 150.00, 'minutes' => 50],
             ['office' => 'jounieh', 'category' => 'licenses', 'name' => 'Beach Club Seasonal License', 'price' => 320.00, 'minutes' => 90],
             ['office' => 'baabda', 'category' => 'planning', 'name' => 'Hillside Construction Permit', 'price' => 275.00, 'minutes' => 100],
             ['office' => 'baabda', 'category' => 'property', 'name' => 'Land Subdivision Request', 'price' => 200.00, 'minutes' => 120],
             ['office' => 'tyre', 'category' => 'licenses', 'name' => 'Fishing Port Activity Permit', 'price' => 65.00, 'minutes' => 40],
             ['office' => 'tyre', 'category' => 'social', 'name' => 'Fisher Families Support Program', 'price' => 0.00, 'minutes' => 30],
-            ['office' => 'nabatieh', 'category' => 'civil', 'name' => 'Municipal Good Conduct Certificate', 'price' => 10.00, 'minutes' => 20],
+            ['office' => 'nabatieh', 'category' => 'civil', 'name' => 'Municipal Good Conduct Certificate', 'price' => 25.00, 'minutes' => 20],
             ['office' => 'nabatieh', 'category' => 'business', 'name' => 'Agricultural Cooperative Registration', 'price' => 55.00, 'minutes' => 45],
             ['office' => 'nabatieh', 'category' => 'health', 'name' => 'Public Market Hygiene Inspection', 'price' => 50.00, 'minutes' => 55],
         ];
@@ -316,7 +325,7 @@ class DemoDataSeeder extends Seeder
                         $this->offices[$item['office']]->municipality_ar ?? $municipality,
                         $descriptionArTemplate
                     ),
-                    'price' => $item['price'],
+                    'price' => $this->normalizePaidServicePrice((float) $item['price']),
                     'estimated_duration_minutes' => $item['minutes'],
                     'required_documents' => ['National ID or passport', 'Proof of address', 'Supporting forms if applicable'],
                     'required_documents_ar' => $requiredDocumentsAr,
@@ -876,6 +885,82 @@ class DemoDataSeeder extends Seeder
         ]);
     }
 
+    private function seedDemoAccountNotifications(): void
+    {
+        $notifications = app(\App\Services\NotificationService::class);
+
+        $admin = User::query()->where('email', 'admin@example.com')->first();
+        $staff = User::query()->where('email', 'staff@example.com')->first();
+        $citizen = User::query()->where('email', 'citizen@example.com')->first();
+
+        if ($admin) {
+            $notifications->notify(
+                $admin,
+                'ui.notifications.admin_new_request',
+                [],
+                'ui.notifications.admin_new_request_body',
+                [
+                    'ref' => 'DEMO-ADMIN-1',
+                    'service' => 'Building permit review',
+                    'office' => 'Beirut Municipal Council — Sanayeh',
+                ],
+                ['type' => 'request'],
+            );
+        }
+
+        if ($staff) {
+            $notifications->notify(
+                $staff,
+                'ui.notifications.new_request',
+                [],
+                'ui.notifications.new_request_body',
+                [
+                    'ref' => 'DEMO-STAFF-1',
+                    'service' => 'Municipal fee payment',
+                ],
+                ['type' => 'request'],
+            );
+            $notifications->notify(
+                $staff,
+                'ui.notifications.payment_received',
+                [],
+                'ui.notifications.payment_received_body',
+                [
+                    'ref' => 'DEMO-STAFF-2',
+                    'amount' => '75.00 USD',
+                    'citizen' => $citizen?->name ?? 'Citizen',
+                ],
+                ['type' => 'payment'],
+            );
+        }
+
+        if ($citizen) {
+            $notifications->notify(
+                $citizen,
+                'ui.notifications.request_status_updated',
+                [],
+                'ui.notifications.request_status_body',
+                [
+                    'ref' => 'DEMO-CITIZEN-1',
+                    'status' => ['status' => 'in_review'],
+                    'service' => 'Residency certificate',
+                ],
+                ['type' => 'request_status'],
+            );
+            $notifications->notify(
+                $citizen,
+                'ui.notifications.payment_confirmed',
+                [],
+                'ui.notifications.payment_confirmed_body',
+                [
+                    'ref' => 'DEMO-CITIZEN-2',
+                    'amount' => '50.00 USD',
+                ],
+                ['type' => 'payment'],
+            );
+        }
+    }
+
     private function seedNotification(
         User $user,
         string $serviceName,
@@ -891,5 +976,14 @@ class DemoDataSeeder extends Seeder
             'read_at' => random_int(0, 1) ? now() : null,
             'created_at' => $at->copy()->addHours(random_int(2, 48)),
         ]);
+    }
+
+    private function normalizePaidServicePrice(float $price): float
+    {
+        if ($price <= 0) {
+            return 0.0;
+        }
+
+        return max($price, self::MIN_PAID_SERVICE_PRICE_USD);
     }
 }

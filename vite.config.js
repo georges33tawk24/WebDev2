@@ -10,6 +10,11 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/admin-reports.js',
+                'resources/js/chat-page.js',
+                'resources/js/navbar-notifications.js',
+                'resources/js/push-notifications.js',
+                'resources/js/password-toggle.js',
+                'resources/js/crypto-payment-poll.js',
             ],
             refresh: true,
             fonts: [

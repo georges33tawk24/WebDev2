@@ -19,11 +19,13 @@
     <p><span class="label">{{ __('ui.pdf.service') }}:</span> {{ $serviceRequest->service?->localized('name') ?? __('ui.na') }}</p>
     <p><span class="label">{{ __('ui.pdf.office') }}:</span> {{ $serviceRequest->office?->localized('name') ?? __('ui.na') }}</p>
     <p class="amount">{{ __('ui.pdf.amount_paid') }}: {{ localized_money($payment->amount) }}</p>
-    <p><span class="label">{{ __('ui.pdf.payment_method') }}:</span> {{ ucfirst($payment->method) }}</p>
+    <p><span class="label">{{ __('ui.pdf.payment_method') }}:</span> {{ __('ui.payments.method_'.$payment->method) }}</p>
     <p><span class="label">{{ __('ui.pdf.status') }}:</span> {{ __('ui.status.'.$payment->status) }}</p>
     <p><span class="label">{{ __('ui.pdf.paid_at') }}:</span> {{ $payment->paid_at ? localized_datetime($payment->paid_at) : __('ui.na') }}</p>
     @if($payment->gateway_reference)
         <p><span class="label">{{ __('ui.pdf.gateway_reference') }}:</span> {{ $payment->gateway_reference }}</p>
     @endif
+
+    @include('pdfs.partials.status-history', ['serviceRequest' => $serviceRequest])
 </body>
 </html>

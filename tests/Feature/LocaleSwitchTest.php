@@ -69,4 +69,28 @@ class LocaleSwitchTest extends TestCase
             __('ui.flash.id_uploaded_verified')
         );
     }
+
+    public function test_citizen_admin_layout_uses_rtl_html_direction_in_arabic(): void
+    {
+        $citizenRole = \App\Models\Role::query()->create(['name' => 'Citizen', 'slug' => 'citizen']);
+        $citizen = \App\Models\User::query()->create([
+            'name' => 'RTL Citizen',
+            'email' => 'rtl-citizen@example.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+            'role_id' => $citizenRole->id,
+            'email_verified_at' => now(),
+            'two_factor_verified_at' => now(),
+            'id_document_path' => 'ids/demo.png',
+        ]);
+
+        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::disk('public')->put('ids/demo.png', 'x');
+
+        $this->actingAs($citizen)
+            ->withSession(['locale' => 'ar'])
+            ->get(route('citizen.payments'))
+            ->assertOk()
+            ->assertSee('dir="rtl"', false)
+            ->assertSee('is-rtl', false);
+    }
 }

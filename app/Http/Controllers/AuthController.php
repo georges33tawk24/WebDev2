@@ -8,6 +8,7 @@ use App\Models\SocialAccount;
 use App\Models\TwoFactorCode;
 use App\Models\User;
 use App\Services\IdDocumentParsingService;
+use App\Services\SmsService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -119,15 +120,6 @@ class AuthController extends Controller
         return redirect()->route('2fa.verify');
     }
 
-    public function deferTwoFactor(Request $request): RedirectResponse
-    {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect()->route('login')->with('status', __('ui.flash.defer_2fa'));
-    }
-
     public function showAccountProtected(Request $request): View|RedirectResponse
     {
         if (! Auth::check()) {
@@ -206,29 +198,184 @@ class AuthController extends Controller
             return redirect()->route(self::homeRouteFor($user));
         }
 
-        $step = $request->session()->get('two_factor.step', 'choose');
+        $channel = $this->resolveTwoFactorChannel($request, $user);
 
-        if ($step === 'choose') {
-            if (! $this->hasDeliverableEmail($user)) {
-                return redirect()->route('2fa.collect-email');
-            }
+        if ($channel === 'email' && ! $this->emailAvailableForTwoFactor($user)) {
+            $request->session()->put('two_factor.pending_channel', 'email');
 
-            if (! $this->userHasPendingTwoFactorCode($user)) {
-                if ($blocked = $this->blockedTwoFactorSendResponse($request)) {
-                    return $blocked;
+            return redirect()->route('2fa.collect-email');
+        }
+
+        if ($channel === 'sms') {
+            if (! $this->smsAvailableForTwoFactor($user)) {
+                $channel = 'email';
+
+                if (! $this->emailAvailableForTwoFactor($user)) {
+                    $request->session()->put('two_factor.pending_channel', 'email');
+
+                    return redirect()->route('2fa.collect-email');
                 }
+            } elseif (! $this->userHasPhone($user)) {
+                $request->session()->put('two_factor.pending_channel', 'sms');
 
-                $this->issueTwoFactorCode($user);
-                $this->recordTwoFactorCodeSend($request);
+                return redirect()->route('2fa.collect-phone');
+            }
+        }
+
+        $request->session()->put('two_factor.channel', $channel);
+        $request->session()->put('two_factor.step', 'verify');
+
+        if (! $this->userHasPendingTwoFactorCode($user)) {
+            if ($blocked = $this->blockedTwoFactorSendResponse($request)) {
+                return $blocked;
             }
 
-            $request->session()->put('two_factor.step', 'verify');
+            if (! $this->issueTwoFactorCode($user, $channel)) {
+                return redirect()
+                    ->route('2fa.verify')
+                    ->withErrors(['resend' => $this->twoFactorDeliveryErrorMessage($channel)]);
+            }
+
+            $this->recordTwoFactorCodeSend($request);
         }
 
         return view('auth.two-factor-verify', [
-            'maskedEmail' => $this->maskEmail($user->email),
+            'channel' => $channel,
+            'maskedDestination' => $channel === 'sms'
+                ? $this->maskPhone($user->phone)
+                : $this->maskEmail($user->email),
             'resendCooldownSeconds' => $this->resendCooldownSeconds($request),
+            'smsAvailable' => $this->smsAvailableForTwoFactor($user),
+            'emailAvailable' => $this->emailAvailableForTwoFactor($user),
+            'hasPhone' => $this->userHasPhone($user),
         ]);
+    }
+
+    public function chooseTwoFactorChannel(Request $request): RedirectResponse
+    {
+        if (! Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'channel' => ['required', 'in:email,sms'],
+        ]);
+
+        $channel = $validated['channel'];
+
+        if ($channel === 'email' && ! $this->emailAvailableForTwoFactor($user)) {
+            $request->session()->put('two_factor.pending_channel', 'email');
+
+            return redirect()->route('2fa.collect-email');
+        }
+
+        if ($channel === 'sms') {
+            if (! $this->smsAvailableForTwoFactor($user)) {
+                return back()->withErrors(['channel' => __('ui.flash.2fa_sms_unavailable')]);
+            }
+
+            if (! $this->userHasPhone($user)) {
+                $request->session()->put('two_factor.pending_channel', 'sms');
+
+                return redirect()->route('2fa.collect-phone');
+            }
+        }
+
+        return $this->completeTwoFactorChannelSelection($request, $user, $channel);
+    }
+
+    private function completeTwoFactorChannelSelection(Request $request, User $user, string $channel): RedirectResponse
+    {
+        $previousChannel = $request->session()->get('two_factor.channel');
+        $isChannelSwitch = is_string($previousChannel) && $previousChannel !== $channel;
+
+        if ($isChannelSwitch) {
+            TwoFactorCode::query()->where('user_id', $user->id)->delete();
+            $request->session()->forget('two_factor.last_sent_at');
+        } elseif ($blocked = $this->blockedTwoFactorSendResponse($request)) {
+            return $blocked;
+        }
+
+        $request->session()->put('two_factor.channel', $channel);
+        $request->session()->put('two_factor.step', 'verify');
+        $request->session()->forget('two_factor.pending_channel');
+        $user->update(['two_factor_channel' => $channel]);
+
+        if (! $this->issueTwoFactorCode($user, $channel)) {
+            return redirect()
+                ->route('2fa.verify')
+                ->withErrors(['resend' => $this->twoFactorDeliveryErrorMessage($channel)]);
+        }
+
+        $this->recordTwoFactorCodeSend($request);
+
+        return redirect()
+            ->route('2fa.verify')
+            ->with('status', $channel === 'sms'
+                ? __('ui.flash.2fa_code_sent_sms')
+                : __('ui.flash.2fa_code_sent'));
+    }
+
+    public function changeTwoFactorChannel(Request $request): RedirectResponse
+    {
+        if (! Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        $user = $request->user();
+        $current = $this->twoFactorSessionChannel($request, $user);
+        $channel = $current === 'sms' ? 'email' : 'sms';
+
+        TwoFactorCode::query()->where('user_id', $user->id)->delete();
+        $request->session()->forget('two_factor.last_sent_at');
+
+        $request->merge(['channel' => $channel]);
+
+        return $this->chooseTwoFactorChannel($request);
+    }
+
+    public function showCollectPhoneForTwoFactor(Request $request): View|RedirectResponse
+    {
+        if (! Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        $user = $request->user();
+
+        if ($this->userHasPhone($user) && $request->session()->get('two_factor.step') !== 'choose') {
+            return redirect()->route('2fa.verify');
+        }
+
+        if (! $this->smsAvailableForTwoFactor($user)) {
+            return redirect()->route('2fa.verify')
+                ->withErrors(['channel' => __('ui.flash.2fa_sms_unavailable')]);
+        }
+
+        return view('auth.two-factor-collect-phone');
+    }
+
+    public function storeCollectPhoneForTwoFactor(Request $request): RedirectResponse
+    {
+        if (! Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        $validated = $request->validate([
+            'phone' => ['required', 'string', 'max:32'],
+        ]);
+
+        $user = $request->user();
+        $user->update(['phone' => $validated['phone']]);
+
+        if ($request->session()->get('two_factor.pending_channel') === 'sms') {
+            return $this->completeTwoFactorChannelSelection($request, $user->fresh(), 'sms');
+        }
+
+        return redirect()
+            ->route('2fa.verify')
+            ->with('status', __('ui.flash.phone_saved_2fa'));
     }
 
     public function verifyTwoFactor(Request $request): RedirectResponse
@@ -260,7 +407,12 @@ class AuthController extends Controller
         RateLimiter::clear($throttleKey);
         $record->delete();
         $request->user()->update(['two_factor_verified_at' => now()]);
-        $request->session()->forget(['two_factor.step', 'two_factor.last_sent_at']);
+        $request->session()->forget([
+            'two_factor.step',
+            'two_factor.last_sent_at',
+            'two_factor.channel',
+            'two_factor.pending_channel',
+        ]);
 
         $user = $request->user()->fresh();
         $user?->purgeInvalidIdDocumentPath();
@@ -291,10 +443,19 @@ class AuthController extends Controller
             return $blocked;
         }
 
-        $this->issueTwoFactorCode($user);
+        $channel = $this->twoFactorSessionChannel($request, $user);
+
+        if (! $this->issueTwoFactorCode($user, $channel)) {
+            return redirect()
+                ->route('2fa.verify')
+                ->withErrors(['resend' => $this->twoFactorDeliveryErrorMessage($channel)]);
+        }
+
         $this->recordTwoFactorCodeSend($request);
 
-        return redirect()->route('2fa.verify')->with('status', __('ui.flash.2fa_code_sent'));
+        return redirect()->route('2fa.verify')->with('status', $channel === 'sms'
+            ? __('ui.flash.2fa_code_sent_sms')
+            : __('ui.flash.2fa_code_sent'));
     }
 
     private function resendCooldownSeconds(Request $request): int
@@ -319,7 +480,7 @@ class AuthController extends Controller
         }
 
         return redirect()->route('2fa.verify')->withErrors([
-            'resend' => __('ui.flash.2fa_resend_wait', ['seconds' => localized_number($seconds)]),
+            'resend' => __('ui.flash.2fa_resend_wait'),
         ]);
     }
 
@@ -534,8 +695,8 @@ class AuthController extends Controller
             return redirect()->route('login');
         }
 
-        if ($this->hasDeliverableEmail($request->user())) {
-            return redirect()->route(self::homeRouteFor($request->user()));
+        if ($this->emailAvailableForTwoFactor($request->user())) {
+            return redirect()->route('2fa.verify');
         }
 
         return view('auth.two-factor-collect-email');
@@ -551,7 +712,12 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$request->user()->id],
         ]);
 
-        $request->user()->update(['email' => $validated['email']]);
+        $user = $request->user();
+        $user->update(['email' => $validated['email']]);
+
+        if ($request->session()->get('two_factor.pending_channel') === 'email') {
+            return $this->completeTwoFactorChannelSelection($request, $user->fresh(), 'email');
+        }
 
         return redirect()
             ->route('2fa.verify')
@@ -574,18 +740,18 @@ class AuthController extends Controller
 
         $this->beginTwoFactorChallenge($request, $user);
 
-        if (! $this->hasDeliverableEmail($user)) {
-            return redirect()->route('2fa.collect-email');
-        }
-
         return redirect()->route('2fa.verify');
     }
 
     private function beginTwoFactorChallenge(Request $request, User $user): void
     {
         $request->session()->regenerate();
-        $request->session()->put('two_factor.step', 'choose');
-        $request->session()->forget('two_factor.last_sent_at');
+        $request->session()->put('two_factor.step', 'verify');
+        $request->session()->forget([
+            'two_factor.last_sent_at',
+            'two_factor.channel',
+            'two_factor.pending_channel',
+        ]);
         $user->forceFill(['two_factor_verified_at' => null])->save();
     }
 
@@ -689,15 +855,23 @@ class AuthController extends Controller
         ];
     }
 
-    private function issueTwoFactorCode(User $user): void
+    private function issueTwoFactorCode(User $user, string $channel = 'email'): bool
     {
         $code = (string) random_int(100000, 999999);
         TwoFactorCode::query()->updateOrCreate(
             ['user_id' => $user->id],
-            ['code' => $code, 'expires_at' => now()->addMinutes(10)]
+            [
+                'code' => $code,
+                'channel' => $channel,
+                'expires_at' => now()->addMinutes(10),
+            ]
         );
 
         $user->forceFill(['two_factor_verified_at' => null])->save();
+
+        if ($channel === 'sms') {
+            return app(SmsService::class)->send($user, __('ui.auth.two_factor_sms_body', ['code' => $code]));
+        }
 
         if ($this->hasDeliverableEmail($user)) {
             $email = $user->email;
@@ -708,7 +882,98 @@ class AuthController extends Controller
                     report($e);
                 }
             })->afterResponse();
+
+            return true;
         }
+
+        return false;
+    }
+
+    private function twoFactorDeliveryErrorMessage(string $channel): string
+    {
+        return $channel === 'sms'
+            ? __('ui.flash.2fa_sms_failed')
+            : __('ui.flash.2fa_email_failed');
+    }
+
+    private function resolveTwoFactorChannel(Request $request, User $user): string
+    {
+        $channel = $request->session()->get('two_factor.channel');
+
+        if (in_array($channel, ['email', 'sms'], true)) {
+            return $channel;
+        }
+
+        $pending = TwoFactorCode::query()
+            ->where('user_id', $user->id)
+            ->where('expires_at', '>', now())
+            ->value('channel');
+
+        if (in_array($pending, ['email', 'sms'], true)) {
+            return $pending;
+        }
+
+        return $this->preferredTwoFactorChannel($user);
+    }
+
+    private function twoFactorSessionChannel(Request $request, User $user): string
+    {
+        return $this->resolveTwoFactorChannel($request, $user);
+    }
+
+    private function emailAvailableForTwoFactor(User $user): bool
+    {
+        return $this->hasDeliverableEmail($user);
+    }
+
+    private function preferredTwoFactorChannel(User $user): string
+    {
+        $saved = $user->two_factor_channel;
+
+        if ($saved === 'sms' && $this->smsAvailableForTwoFactor($user) && $this->userHasPhone($user)) {
+            return 'sms';
+        }
+
+        if ($saved === 'email' && $this->emailAvailableForTwoFactor($user)) {
+            return 'email';
+        }
+
+        if ($this->emailAvailableForTwoFactor($user)) {
+            return 'email';
+        }
+
+        if ($this->smsAvailableForTwoFactor($user) && $this->userHasPhone($user)) {
+            return 'sms';
+        }
+
+        return 'email';
+    }
+
+    private function smsAvailableForTwoFactor(User $user): bool
+    {
+        return app(SmsService::class)->isConfigured();
+    }
+
+    private function userHasPhone(User $user): bool
+    {
+        $phone = $user->phone;
+
+        return is_string($phone) && trim($phone) !== '';
+    }
+
+    private function maskPhone(mixed $phone): string
+    {
+        if (! is_string($phone) || trim($phone) === '') {
+            return __('ui.auth.masked_phone_fallback');
+        }
+
+        $digits = preg_replace('/[^\d+]/', '', $phone) ?? '';
+
+        if (strlen($digits) < 6) {
+            return str_repeat('*', strlen($digits));
+        }
+
+        return substr($digits, 0, 4).str_repeat('*', max(0, strlen($digits) - 6)).substr($digits, -2);
     }
 
     private function hasDeliverableEmail(User $user): bool

@@ -25,7 +25,7 @@
     @endif
 
     @forelse($requests as $request)
-        <div style="border:1px solid #e5e7eb; border-radius:14px; padding:20px; margin-bottom:18px;">
+        <div style="border:1px solid #e5e7eb; border-radius:14px; padding:20px; margin-bottom:18px;" data-live-request-id="{{ $request->id }}">
             <div style="display:flex; justify-content:space-between; gap:20px; align-items:flex-start;">
                 <div>
                     <h2 style="font-size:20px; font-weight:700; margin-bottom:6px;">
@@ -46,16 +46,16 @@
                 </div>
 
                 <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-                    <span style="padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600; background:#fef3c7; color:#92400e;">
+                    <span data-live-request-status style="padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600; background:#fef3c7; color:#92400e;">
                         {{ __('ui.status.'.$request->status) }}
                     </span>
 
                     @if($request->payments->where('status', 'paid')->count() > 0)
-                        <span style="background:#dcfce7; color:#166534; padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600;">
+                        <span data-live-request-paid data-paid-label="{{ __('ui.citizen.paid') }}" style="background:#dcfce7; color:#166534; padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600;">
                             {{ __('ui.citizen.paid') }}
                         </span>
                     @else
-                        <span style="background:#fee2e2; color:#991b1b; padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600;">
+                        <span data-live-request-unpaid style="background:#fee2e2; color:#991b1b; padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600;">
                             {{ __('ui.citizen.unpaid') }}
                         </span>
                     @endif
@@ -75,6 +75,11 @@
             </div>
 
             <div style="margin-top:20px;">
+                <h3 style="font-size:16px; font-weight:700; margin-bottom:10px;">{{ __('ui.staff.payment_status') }}</h3>
+                <x-request-payment-status :service-request="$request" />
+            </div>
+
+            <div style="margin-top:20px;">
                 <h3 style="font-size:16px; font-weight:700; margin-bottom:10px;">{{ __('ui.staff.status_history') }}</h3>
 
                 @forelse($request->statusHistories as $history)
@@ -87,9 +92,9 @@
                             {{ $history->changed_at ? localized_datetime($history->changed_at) : __('ui.na') }}
                         </p>
 
-                        @if($history->comment)
+                        @if($history->display_comment)
                             <p style="font-size:14px; color:#374151;">
-                                {{ $history->comment }}
+                                {{ $history->display_comment }}
                             </p>
                         @endif
                     </div>

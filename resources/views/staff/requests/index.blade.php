@@ -26,13 +26,13 @@
         </thead>
         <tbody>
             @forelse($requests as $request)
-            <tr>
+            <tr data-live-request-id="{{ $request->id }}">
                 <td style="font-weight:600; color:#111827;">{{ substr($request->reference_number, 0, 8) }}...</td>
                 <td>{{ $request->citizen?->name ?? __('ui.na') }}</td>
                 <td>{{ $request->service?->localized('name') ?? __('ui.na') }}</td>
                 <td>{{ $request->office?->localized('name') ?? __('ui.na') }}</td>
                 <td style="color:#6b7280;">{{ $request->submitted_at?->format('M d, Y') ?? __('ui.na') }}</td>
-                <td>
+                <td data-live-staff-request-status="{{ $request->id }}">
                     <x-status-badge :status="$request->status" />
                 </td>
                 <td>

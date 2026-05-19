@@ -1,1 +1,4 @@
+# Local SQLite scratch files (not shared)
 *.sqlite*
+# Committed team snapshot — copy on clone via `php artisan db:import-team`
+!team.sqlite

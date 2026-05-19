@@ -23,6 +23,13 @@
     <p><strong>{{ __('ui.table.service') }}:</strong> {{ $serviceRequest->service?->localized('name') ?? __('ui.na') }}</p>
     <p><strong>{{ __('ui.citizen.status_colon') }}</strong> {{ __('ui.status.'.$serviceRequest->status) }}</p>
 
+    @isset($trackingUrl)
+        <p style="margin-top:16px; font-size:14px; color:#6b7280; word-break:break-all;">
+            {{ __('ui.track.public_notice') }}<br>
+            <a href="{{ $trackingUrl }}" style="color:#2563eb;">{{ $trackingUrl }}</a>
+        </p>
+    @endisset
+
     <div style="margin-top:28px;">
         <a href="{{ route('citizen.requests') }}"
            class="btn-secondary"

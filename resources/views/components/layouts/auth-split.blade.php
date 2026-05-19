@@ -36,12 +36,10 @@
             @endif
 
             @if ($errors->any())
-                <div class="alert-error">
-                    <ul>
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
+                <div class="alert-error" role="alert" aria-live="polite">
+                    @foreach ($errors->all() as $error)
+                        <p class="auth-alert-message">{{ $error }}</p>
+                    @endforeach
                 </div>
             @endif
 
@@ -49,6 +47,11 @@
         </main>
     </div>
 </div>
+<script>
+    window.passwordToggleLabels = {
+        show: @json(__('ui.auth.show_password')),
+        hide: @json(__('ui.auth.hide_password')),
+    };
+</script>
+@vite('resources/js/password-toggle.js')
 @stack('scripts')
-</body>
-</html>

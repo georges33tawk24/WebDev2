@@ -25,9 +25,12 @@ class EnsureCitizenIdDocument
             '2fa.verify',
             '2fa.verify.submit',
             '2fa.resend',
-            '2fa.defer',
             '2fa.collect-email',
             '2fa.collect-email.store',
+            '2fa.collect-phone',
+            '2fa.collect-phone.store',
+            '2fa.channel',
+            '2fa.change-method',
         )) {
             return redirect()
                 ->route('id-upload')

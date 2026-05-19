@@ -52,8 +52,8 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </span>
             <input id="password" type="password" name="password" placeholder="{{ __('ui.placeholders.password') }}" required autocomplete="new-password">
-            <button type="button" class="input-icon-btn" data-toggle-pass aria-controls="password" aria-label="{{ __('ui.auth.show_password') }}">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <button type="button" class="input-icon-btn" data-toggle-pass aria-controls="password" aria-label="{{ __('ui.auth.show_password') }}" aria-pressed="false">
+                <x-password-toggle-icons />
             </button>
         </div>
 
@@ -63,8 +63,8 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </span>
             <input id="password_confirmation" type="password" name="password_confirmation" placeholder="{{ __('ui.placeholders.password') }}" required autocomplete="new-password">
-            <button type="button" class="input-icon-btn" data-toggle-pass aria-controls="password_confirmation" aria-label="{{ __('ui.auth.show_password') }}">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <button type="button" class="input-icon-btn" data-toggle-pass aria-controls="password_confirmation" aria-label="{{ __('ui.auth.show_password') }}" aria-pressed="false">
+                <x-password-toggle-icons />
             </button>
         </div>
 
@@ -127,17 +127,6 @@
                         .catch(function () {});
                 });
             })();
-
-            document.querySelectorAll('[data-toggle-pass]').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    var id = btn.getAttribute('aria-controls');
-                    var input = document.getElementById(id);
-                    if (!input) return;
-                    var next = input.type === 'password' ? 'text' : 'password';
-                    input.type = next;
-                    btn.setAttribute('aria-label', next === 'password' ? @json(__('ui.auth.show_password')) : @json(__('ui.auth.hide_password')));
-                });
-            });
         </script>
     @endpush
 </x-layouts.auth-split>

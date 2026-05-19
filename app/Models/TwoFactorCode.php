@@ -10,6 +10,7 @@ class TwoFactorCode extends Model
     protected $fillable = [
         'user_id',
         'code',
+        'channel',
         'expires_at',
     ];
 

@@ -15,6 +15,7 @@ class Payment extends Model
         'currency',
         'status',
         'gateway_reference',
+        'gateway_meta',
         'paid_at',
     ];
 
@@ -22,6 +23,7 @@ class Payment extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'gateway_meta' => 'array',
             'paid_at' => 'datetime',
         ];
     }

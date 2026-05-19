@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Storage;
     'date_of_birth',
     'phone',
     'two_factor_verified_at',
+    'two_factor_channel',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -68,6 +69,11 @@ class User extends Authenticatable
     public function socialAccounts(): HasMany
     {
         return $this->hasMany(SocialAccount::class);
+    }
+
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
     }
 
     public function isCitizen(): bool

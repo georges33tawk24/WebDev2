@@ -20,13 +20,18 @@
         <p class="auth-wordmark auth-wordmark--center"><a href="{{ route('login') }}">{{ __('ui.app_name') }}</a></p>
 
         @if (session('status'))
-            <div class="alert-success">{{ session('status') }}</div>
+            <div class="alert-success alert-banner">{{ session('status') }}</div>
         @endif
 
-        @if ($errors->any())
-            <div class="alert-error">
+        @php
+            $bannerErrors = collect($errors->getMessages())
+                ->except(['code', 'resend', 'channel'])
+                ->flatten();
+        @endphp
+        @if ($bannerErrors->isNotEmpty())
+            <div class="alert-error alert-banner">
                 <ul>
-                    @foreach ($errors->all() as $error)
+                    @foreach ($bannerErrors as $error)
                         <li>{{ $error }}</li>
                     @endforeach
                 </ul>

@@ -33,6 +33,11 @@ class NormalizeLocalDevelopmentHost
             return $next($request);
         }
 
+        // Never redirect POST/PUT/PATCH/DELETE — a 302 would drop the body (login errors never shown).
+        if (! $request->isMethodSafe()) {
+            return $next($request);
+        }
+
         $portSuffix = in_array((int) $canonicalPort, [80, 443], true) ? '' : ":{$canonicalPort}";
 
         return redirect()->to($canonicalScheme.'://'.$canonicalHost.$portSuffix.$request->getRequestUri());

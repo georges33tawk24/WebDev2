@@ -95,6 +95,7 @@ class QaSmokeTest extends TestCase
             'citizen.dashboard',
             'citizen.services',
             'citizen.requests',
+            'citizen.chats.index',
             'citizen.payments',
             'citizen.maps',
             'citizen.appointments',
@@ -139,6 +140,55 @@ class QaSmokeTest extends TestCase
             ->get(route('dashboard.admin'))
             ->assertOk()
             ->assertSee(__('ui.nav.dashboard', [], 'ar'), false);
+    }
+
+    public function test_admin_requests_and_staff_feature_pages_load_in_arabic(): void
+    {
+        $staffRole = Role::query()->create(['name' => 'Office Staff', 'slug' => 'office_staff']);
+        $office = Office::query()->first();
+
+        $staff = User::query()->create([
+            'name' => 'QA Staff AR',
+            'email' => 'staff-ar@example.com',
+            'password' => Hash::make('password123'),
+            'role_id' => $staffRole->id,
+            'office_id' => $office->id,
+            'email_verified_at' => now(),
+            'two_factor_verified_at' => now(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->withSession(['locale' => 'ar'])
+            ->get(route('admin.requests.index'))
+            ->assertOk()
+            ->assertSee(__('ui.admin.requests_title', [], 'ar'), false);
+
+        $this->actingAs($staff)
+            ->withSession(['locale' => 'ar'])
+            ->get(route('staff.chats.index'))
+            ->assertOk()
+            ->assertSee(__('ui.staff.chats_title', [], 'ar'), false);
+
+        $this->actingAs($staff)
+            ->withSession(['locale' => 'ar'])
+            ->get(route('staff.appointments.index'))
+            ->assertOk()
+            ->assertSee(__('ui.staff.appointments_title', [], 'ar'), false);
+    }
+
+    public function test_public_track_page_loads_in_arabic(): void
+    {
+        $request = ServiceRequest::query()->where('citizen_id', $this->citizen->id)->firstOrFail();
+        $qr = \App\Models\QrCode::query()->create([
+            'service_request_id' => $request->id,
+            'token' => 'ARTRACKTEST1',
+            'expires_at' => now()->addMonth(),
+        ]);
+
+        $this->withSession(['locale' => 'ar'])
+            ->get(route('track.show', $qr->token))
+            ->assertOk()
+            ->assertSee(__('ui.track.request_status', [], 'ar'), false);
     }
 
     public function test_admin_reports_page_includes_chart_data_and_bundle(): void

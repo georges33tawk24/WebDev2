@@ -91,7 +91,7 @@
             </h2>
 
             @forelse($activeRequests as $request)
-                <div style="padding:16px 0; border-bottom:1px solid #e5e7eb;">
+                <div style="padding:16px 0; border-bottom:1px solid #e5e7eb;" data-live-request-id="{{ $request->id }}">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:20px;">
                         <div>
                             <p style="font-weight:700;">
@@ -105,15 +105,15 @@
                             </p>
                         </div>
                         <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-                            <span style="background:#fef3c7; color:#92400e; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;">
+                            <span data-live-request-status style="background:#fef3c7; color:#92400e; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;">
                                 {{ __('ui.status.'.$request->status) }}
                             </span>
                             @if($request->payments->where('status', 'paid')->count() > 0)
-                                <span style="background:#dcfce7; color:#166534; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;">
+                                <span data-live-request-paid data-paid-label="{{ __('ui.citizen.paid') }}" style="background:#dcfce7; color:#166534; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;">
                                     {{ __('ui.citizen.paid') }}
                                 </span>
                             @else
-                                <span style="background:#fee2e2; color:#991b1b; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;">
+                                <span data-live-request-unpaid style="background:#fee2e2; color:#991b1b; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;">
                                     {{ __('ui.citizen.unpaid') }}
                                 </span>
                             @endif
@@ -131,7 +131,7 @@
             </h2>
 
             @forelse($recentRequests as $request)
-                <div style="padding:16px 0; border-bottom:1px solid #e5e7eb;">
+                <div style="padding:16px 0; border-bottom:1px solid #e5e7eb;" data-live-request-id="{{ $request->id }}">
                     <p style="font-weight:700;">
                         {{ $request->service?->localized('name') ?? __('ui.citizen.service_removed') }}
                     </p>
@@ -139,7 +139,7 @@
                         {{ optional($request->created_at)->format('d M Y') }}
                     </p>
                     <p style="color:#6b7280; font-size:14px;">
-                        {{ __('ui.citizen.status_label') }}: {{ __('ui.status.'.$request->status) }}
+                        {{ __('ui.citizen.status_label') }}: <span data-live-request-status>{{ __('ui.status.'.$request->status) }}</span>
                     </p>
                 </div>
             @empty
